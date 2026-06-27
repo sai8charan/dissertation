@@ -18,7 +18,7 @@ for d in [DATA_DIR, CKPT_DIR, RESULTS_DIR, FIGURES_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 # ── Dataset ───────────────────────────────────────────────────────────────────
-DATASET_NAME    = "cnn_dailymail"
+DATASET_NAME    = "abisee/cnn_dailymail"
 DATASET_VERSION = "3.0.0"
 ARTICLE_COL     = "article"
 SUMMARY_COL     = "highlights"
