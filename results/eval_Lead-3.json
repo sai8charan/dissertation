@@ -1,0 +1,12 @@
+{
+  "system": "Lead-3",
+  "n_samples": 200,
+  "rouge1": 30.45,
+  "rouge2": 12.31,
+  "rougeL": 21.06,
+  "bertscore_f1": 86.58,
+  "fallback_rate": 0.0,
+  "mean_latency_s": 0.0,
+  "nli_fcs": null,
+  "hallucination_rate": null
+}

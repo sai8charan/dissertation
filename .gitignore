@@ -1,0 +1,179 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# .gitignore — A Two-Stage Summarisation Pipeline (M.Tech Dissertation)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+.eggs/
+
+# ── Virtual environment ───────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.env
+
+# ── Jupyter Notebooks ─────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Fine-tuned model checkpoints (EXPORTED — committed for portability) ───────
+# Full fine-tuned model folders are tracked so they can be exported / shared.
+# Only raw intermediate trainer step-checkpoints are excluded (too large/noisy).
+# checkpoints/             ← NOT ignored: bart_finetuned/, pegasus_finetuned/, mbart_finetuned/ are tracked
+checkpoints/*/checkpoint-*/   # intermediate step checkpoints — NOT needed after training
+checkpoints/*/logs/           # tensorboard logs
+checkpoints/*/runs/           # trainer run logs
+
+# ── Dataset cache (EXCLUDED — re-downloaded from HuggingFace Hub) ─────────────
+# Raw downloaded dataset cache is NOT tracked (can be re-fetched on any machine).
+data/cache/
+~/.cache/huggingface/
+*.arrow
+*.parquet
+dataset_dict.json
+dataset_info.json
+state.json
+
+# ── Results & reports (EXPORTED — committed for dissertation submission) ──────
+# All result CSVs, JSON metrics, and evaluation outputs are now tracked.
+# results/           ← NOT ignored
+# Per-sample prediction CSVs can be large; exclude them individually:
+results/preds_*.csv           # per-sample prediction dumps (can be 100k+ rows)
+
+# ── Figures (EXPORTED — committed for dissertation submission) ────────────────
+# Attention heatmaps and experiment plots are tracked.
+# figures/           ← NOT ignored
+
+# ── Model weight files ────────────────────────────────────────────────────────
+# Fine-tuned weights inside checkpoints/ are tracked (see above).
+# Exclude only loose weight files dropped in the root or other directories.
+# *.bin          ← NOT globally ignored (needed for checkpoints/bart_finetuned/)
+# *.safetensors  ← NOT globally ignored
+*.ckpt          # raw trainer epoch checkpoints (redundant with checkpoint-N/ folders)
+*.onnx          # exported ONNX graphs (regenerate from saved model)
+*.h5            # Keras weight files (not used in this project)
+*.pyo
+*.pyd
+*.so
+
+# ── Tokenizer / sentencepiece artefacts ──────────────────────────────────────
+# Tokenizer files (vocab.json, merges.txt, etc.) inside checkpoints/ are tracked.
+# Exclude only raw sentencepiece binaries if they appear at root:
+spiece.model
+sentencepiece.bpe.model
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+runs/
+tensorboard_logs/
+lightning_logs/
+
+# ── Evaluation / human eval outputs (EXPORTED — all tracked) ─────────────────
+# All metric JSON files, comparison tables, and human eval sheets are tracked.
+# Only the per-sample bulk prediction CSVs are excluded (already ruled above).
+# results/eval_*.json       ← tracked
+# results/human_eval_*.csv  ← tracked
+# results/*_table.csv       ← tracked
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+*.env
+secrets.yaml
+hf_token.txt
+
+# ── OS artefacts ──────────────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm / IntelliJ
+.idea/
+*.iml
+*.iws
+
+# Spyder
+.spyderproject.cfg
+.spyproject/
+
+# Rope
+.ropeproject
+
+# ── Coverage / testing ────────────────────────────────────────────────────────
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.pytest_cache/
+nosetests.xml
+test-results/
+
+# ── MyPy / type checking ──────────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ── Documentation / reports (EXPORTED — PDFs tracked for submission) ─────────
+docs/_build/
+documentation/__pycache__/
+# *.pdf            ← NOT ignored: dissertation PDF and report exports are tracked
+# Keep source .py documentation scripts tracked:
+!documentation/*.py
+
+# ── Miscellaneous ─────────────────────────────────────────────────────────────
+*.tmp
+*.bak
+*.swp
+*.swo
+*.orig
+.hypothesis/
+
+# ── Keep tracked directories ─────────────────────────────────────────────────
+# results/, figures/, and checkpoints/ are all now tracked — .gitkeep files
+# ensure they appear in fresh clones even before any files are generated.
+!results/.gitkeep
+!figures/.gitkeep
+!checkpoints/.gitkeep
+
+# ══════════════════════════════════════════════════════════════════════════════
+# EXPORT SUMMARY
+# Tracked (exported):  checkpoints/*/  results/*.csv|*.json  figures/*.png  *.pdf
+# Excluded (not git):  .venv/  data/cache/  __pycache__/  checkpoint-N/ step dirs
+# ══════════════════════════════════════════════════════════════════════════════

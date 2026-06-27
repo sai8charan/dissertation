@@ -1,0 +1,30 @@
+{
+  "checks": [
+    {
+      "objective": "Pipeline ROUGE-2",
+      "target": ">= 18.0",
+      "value": "no results",
+      "status": "PENDING"
+    },
+    {
+      "objective": "Pipeline NLI-FCS",
+      "target": ">= 0.65",
+      "value": "no results",
+      "status": "PENDING"
+    },
+    {
+      "objective": "Extractive fallback rate",
+      "target": "< 15.0%",
+      "value": "no results",
+      "status": "PENDING"
+    },
+    {
+      "objective": "Pipeline vs BART NLI-FCS gap",
+      "target": "pipeline >= 0.65, BART <= 0.55",
+      "value": "missing pipeline or BART-fine-tuned row",
+      "status": "PENDING"
+    }
+  ],
+  "all_passed": false,
+  "note": "Human evaluation targets checked separately via human_eval.py"
+}

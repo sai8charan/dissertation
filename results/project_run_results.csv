@@ -1,0 +1,5 @@
+system,n_samples,rouge1,rouge2,rougeL,bertscore_f1,nli_fcs,hallucination_rate,fallback_rate,mean_latency_s
+Lead-3,2,34.58,16.37,26.16,75.86,0.9922,0.0,0.0,0.0
+TextRank,2,24.45,13.63,19.95,76.06,0.9932,0.0,0.0,0.0
+BART-zero-shot,2,42.55,22.88,38.18,75.76,0.9934,0.0,0.0,0.0
+Pipeline (zero-shot),2,42.33,20.53,37.29,75.11,0.991,0.0,0.0,23.53

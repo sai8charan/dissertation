@@ -1,0 +1,12 @@
+{
+  "system": "TextRank",
+  "n_samples": 200,
+  "rouge1": 20.73,
+  "rouge2": 8.32,
+  "rougeL": 14.26,
+  "bertscore_f1": 85.48,
+  "fallback_rate": 0.0,
+  "mean_latency_s": 0.0,
+  "nli_fcs": null,
+  "hallucination_rate": null
+}
