@@ -25,17 +25,16 @@ SUMMARY_COL     = "highlights"
 TRAIN_SPLIT     = 0.70
 VAL_SPLIT       = 0.15
 TEST_SPLIT      = 0.15
-MAX_TRAIN_SAMPLES = None   # Set to e.g. 10_000 for fast iteration; None = full
+MAX_TRAIN_SAMPLES = 50_000   # Set to 50,000 for standard training size (matches Colab setup)
 
 # ── Models ────────────────────────────────────────────────────────────────────
 BART_MODEL      = "facebook/bart-large-cnn"   # pre-trained starting point
-PEGASUS_MODEL   = "google/pegasus-cnn_dailymail"
+PEGASUS_MODEL   = "google/pegasus-cnn_dailymail"  # used directly; no project checkpoint
 MBART_MODEL     = "facebook/mbart-large-cc25"
 NLI_MODEL       = "cross-encoder/nli-deberta-v3-base"
 EMBED_MODEL     = "sentence-transformers/all-MiniLM-L6-v2"
 
 BART_CKPT       = CKPT_DIR / "bart_finetuned"   # saved after training
-PEGASUS_CKPT    = CKPT_DIR / "pegasus_finetuned"
 MBART_CKPT      = CKPT_DIR / "mbart_finetuned"
 
 # ── Tokeniser limits ──────────────────────────────────────────────────────────

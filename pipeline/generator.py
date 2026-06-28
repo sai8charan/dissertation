@@ -6,7 +6,7 @@ Stage 2: Abstractive generation.
 Loads a fine-tuned seq2seq model (BART by default) and generates
 N candidate summaries via nucleus sampling (top_p).
 
-The module also supports PEGASUS and mBART for the comparison study
+The module also supports mBART for the comparison study
 (experiments/run_pipeline.py passes --model to switch).
 
 Key design decisions:
@@ -27,10 +27,8 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 sys.path.append(str(Path(__file__).parent.parent))
 from config import (
     BART_MODEL, BART_CKPT,
-    PEGASUS_MODEL, PEGASUS_CKPT,
     MBART_MODEL, MBART_CKPT,
     BART_MAX_INPUT, BART_MAX_OUTPUT,
-    PEGASUS_MAX_INPUT, PEGASUS_MAX_OUTPUT,
     NUM_CANDIDATES, TOP_P, TEMPERATURE,
     SEED,
 )
@@ -44,12 +42,6 @@ _REGISTRY = {
         "finetuned":  str(BART_CKPT),
         "max_input":  BART_MAX_INPUT,
         "max_output": BART_MAX_OUTPUT,
-    },
-    "pegasus": {
-        "pretrained": PEGASUS_MODEL,
-        "finetuned":  str(PEGASUS_CKPT),
-        "max_input":  PEGASUS_MAX_INPUT,
-        "max_output": PEGASUS_MAX_OUTPUT,
     },
     "mbart": {
         "pretrained": MBART_MODEL,
@@ -65,7 +57,7 @@ class Generator:
     Seq2seq generator with Best-of-N nucleus sampling.
 
     Args:
-        model_key   : "bart" | "pegasus" | "mbart"
+        model_key   : "bart" | "mbart"
         use_finetuned: True  → load from checkpoints/<model>_finetuned/
                        False → load pretrained HuggingFace weights (zero-shot)
         n_candidates: number of diverse summaries to generate per article

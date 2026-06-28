@@ -20,10 +20,11 @@ dissertation/
 ├── baselines/
 │   ├── lead3.py                     # Lead-3 baseline
 │   ├── textrank.py                  # TextRank extractive baseline
-│   └── bart_baseline.py             # Zero-shot and fine-tuned BART baselines
+│   ├── bart_baseline.py             # Zero-shot and fine-tuned BART baselines
+│   └── pegasus_baseline.py          # Direct pretrained PEGASUS baseline
 │
 ├── train/
-│   └── train_seq2seq.py             # Fine-tune BART / PEGASUS / mBART
+│   └── train_seq2seq.py             # Fine-tune BART / mBART only
 │
 ├── pipeline/
 │   ├── retrieval.py                 # Stage 1: hybrid BM25 + embedding retrieval
@@ -38,7 +39,7 @@ dissertation/
 │
 ├── experiments/
 │   ├── run_baselines.py             # Evaluate all four baselines
-│   ├── run_pipeline.py              # Pipeline + PEGASUS/mBART comparison
+│   ├── run_pipeline.py              # Pipeline + direct PEGASUS/mBART comparison
 │   └── run_ablations.py             # Ablation studies A / B / C
 │
 ├── multilingual/
@@ -70,9 +71,10 @@ pip install -r requirements.txt
 python -c "import nltk; nltk.download('punkt')"
 ```
 
-**GPU note**: Fine-tuning BART-large requires a GPU with ≥16GB VRAM
-(A100 on Google Colab Pro+ / Kaggle). Inference runs on CPU but is slow —
-use a T4 or better for evaluation.
+**GPU note**: Fine-tuning BART-large and mBART requires a GPU with ≥16GB VRAM
+(A100 on Google Colab Pro+ / Kaggle). PEGASUS is already trained on
+CNN/DailyMail and is loaded directly, so it does not need a training run.
+Inference runs on CPU but is slow — use a T4 or better for evaluation.
 
 ---
 
@@ -103,12 +105,13 @@ python train/train_seq2seq.py --model bart
 Takes ~6–8 hours on an A100. Checkpoint saved to `checkpoints/bart_finetuned/`.
 For fast iteration, set `MAX_TRAIN_SAMPLES = 5000` in `config.py` first.
 
-### Step 4 — Fine-tune PEGASUS and mBART (for comparison study)
+### Step 4 — Direct PEGASUS comparison and mBART
 
 ```bash
-python train/train_seq2seq.py --model pegasus
 python train/train_seq2seq.py --model mbart
 ```
+PEGASUS is loaded directly from `google/pegasus-cnn_dailymail`, so no
+additional fine-tuning step is needed for that comparison row.
 
 ### Step 5 — Full pipeline evaluation
 
@@ -116,7 +119,7 @@ python train/train_seq2seq.py --model mbart
 python experiments/run_pipeline.py --max_samples 500
 python evaluation/check_targets.py
 ```
-Compares proposed pipeline vs all baselines + PEGASUS + mBART.
+Compares proposed pipeline vs all baselines + direct PEGASUS + mBART.
 Results saved to `results/full_comparison_table.csv`.
 Use `--check_targets` on `run_pipeline.py` to evaluate and check objectives in one step.
 
@@ -183,7 +186,7 @@ Target thresholds are defined in `config.py` (`EXPECTED_TARGETS`). After evaluat
 | TextRank | TBD | TBD | TBD | TBD | TBD | — | — |
 | BART zero-shot | TBD | TBD | TBD | TBD | TBD | — | — |
 | BART fine-tuned | TBD | TBD | TBD | TBD | TBD | — | baseline FCS ≤ 0.55 |
-| PEGASUS fine-tuned | TBD | TBD | TBD | TBD | TBD | — | — |
+| PEGASUS pretrained | TBD | TBD | TBD | TBD | TBD | — | — |
 | mBART fine-tuned | TBD | TBD | TBD | TBD | TBD | — | — |
 | **Proposed pipeline** | **TBD** | **TBD (target ≥ 18.0)** | **TBD** | **TBD** | **TBD (target ≥ 0.65)** | **TBD (target < 15%)** | `check_targets.py` |
 

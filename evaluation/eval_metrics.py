@@ -16,6 +16,7 @@ Usage:
     python evaluation/eval_metrics.py --system pipeline
     python evaluation/eval_metrics.py --system lead3
     python evaluation/eval_metrics.py --system bart_zeroshot
+    python evaluation/eval_metrics.py --system pegasus_pretrained
 """
 
 import argparse
@@ -225,7 +226,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--system", default="lead3",
                         choices=["lead3", "textrank", "bart_zeroshot",
-                                 "bart_finetuned", "pipeline"])
+                                 "bart_finetuned", "pegasus_pretrained",
+                                 "pipeline"])
     parser.add_argument("--max_samples", type=int, default=200)
     parser.add_argument("--no_fcs", action="store_true")
     args = parser.parse_args()
@@ -242,6 +244,9 @@ if __name__ == "__main__":
     elif args.system == "bart_finetuned":
         from baselines.bart_baseline import BartBaseline
         fn = BartBaseline(mode="finetuned")
+    elif args.system == "pegasus_pretrained":
+        from baselines.pegasus_baseline import PegasusBaseline
+        fn = PegasusBaseline()
     elif args.system == "pipeline":
         from pipeline.pipeline import SummarizationPipeline
         fn = SummarizationPipeline()

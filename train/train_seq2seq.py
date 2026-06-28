@@ -1,12 +1,11 @@
 """
 train/train_seq2seq.py
 ----------------------
-Fine-tunes a seq2seq model (BART, PEGASUS, or mBART) on CNN/DailyMail
+Fine-tunes a seq2seq model (BART or mBART) on CNN/DailyMail
 using HuggingFace Seq2SeqTrainer.
 
 Usage:
     python train/train_seq2seq.py --model bart
-    python train/train_seq2seq.py --model pegasus
     python train/train_seq2seq.py --model mbart
 
 Output:
@@ -23,28 +22,39 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import evaluate
 from transformers import (
-    AutoTokenizer,
     AutoModelForSeq2SeqLM,
-    Seq2SeqTrainer,
-    Seq2SeqTrainingArguments,
+    AutoTokenizer,
     DataCollatorForSeq2Seq,
     EarlyStoppingCallback,
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments,
     set_seed,
 )
-import evaluate
 
 sys.path.append(str(Path(__file__).parent.parent))
 from config import (
-    BART_MODEL, PEGASUS_MODEL, MBART_MODEL,
-    BART_CKPT, PEGASUS_CKPT, CKPT_DIR,
-    ARTICLE_COL, SUMMARY_COL,
-    BART_MAX_INPUT, BART_MAX_OUTPUT,
-    PEGASUS_MAX_INPUT, PEGASUS_MAX_OUTPUT,
-    TRAIN_BATCH_SIZE, GRAD_ACCUM_STEPS,
-    LEARNING_RATE, NUM_EPOCHS, WARMUP_STEPS,
-    WEIGHT_DECAY, FP16, SAVE_STEPS, EVAL_STEPS,
-    LOGGING_STEPS, SEED, RESULTS_DIR,
+    ARTICLE_COL,
+    BART_CKPT,
+    BART_MAX_INPUT,
+    BART_MAX_OUTPUT,
+    BART_MODEL,
+    EVAL_STEPS,
+    FP16,
+    GRAD_ACCUM_STEPS,
+    LEARNING_RATE,
+    LOGGING_STEPS,
+    MBART_CKPT,
+    MBART_MODEL,
+    NUM_EPOCHS,
+    RESULTS_DIR,
+    SAVE_STEPS,
+    SEED,
+    SUMMARY_COL,
+    TRAIN_BATCH_SIZE,
+    WARMUP_STEPS,
+    WEIGHT_DECAY,
 )
 from data.data_pipeline import get_datasets
 
@@ -53,9 +63,18 @@ log = logging.getLogger(__name__)
 
 # ── Model registry ────────────────────────────────────────────────────────────
 MODEL_REGISTRY = {
-    "bart":    {"hf_name": BART_MODEL,    "max_in": BART_MAX_INPUT,    "max_out": BART_MAX_OUTPUT,    "ckpt": BART_CKPT},
-    "pegasus": {"hf_name": PEGASUS_MODEL, "max_in": PEGASUS_MAX_INPUT, "max_out": PEGASUS_MAX_OUTPUT, "ckpt": PEGASUS_CKPT},
-    "mbart":   {"hf_name": MBART_MODEL,   "max_in": BART_MAX_INPUT,    "max_out": BART_MAX_OUTPUT,    "ckpt": CKPT_DIR / "mbart_finetuned"},
+    "bart": {
+        "hf_name": BART_MODEL,
+        "max_in": BART_MAX_INPUT,
+        "max_out": BART_MAX_OUTPUT,
+        "ckpt": BART_CKPT,
+    },
+    "mbart": {
+        "hf_name": MBART_MODEL,
+        "max_in": BART_MAX_INPUT,
+        "max_out": BART_MAX_OUTPUT,
+        "ckpt": MBART_CKPT,
+    },
 }
 
 
@@ -193,7 +212,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--model", choices=list(MODEL_REGISTRY.keys()), default="bart",
-        help="Which model to fine-tune (default: bart)"
+        help="Which model to fine-tune (bart or mbart; default: bart)",
     )
     args = parser.parse_args()
     train(args.model)

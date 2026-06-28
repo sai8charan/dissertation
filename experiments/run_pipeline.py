@@ -2,7 +2,7 @@
 experiments/run_pipeline.py
 ---------------------------
 Evaluates the full proposed pipeline against all baselines.
-Also runs the PEGASUS and mBART comparison study for the
+Also runs the direct PEGASUS and mBART comparison study for the
 model-justification section of the dissertation.
 
 Run:
@@ -21,7 +21,7 @@ import pandas as pd
 
 sys.path.append(str(Path(__file__).parent.parent))
 from evaluation.eval_metrics import evaluate_system
-from config import RESULTS_DIR, BART_CKPT, PEGASUS_CKPT, MBART_CKPT
+from config import RESULTS_DIR, BART_CKPT, MBART_CKPT
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ def run_full_comparison(max_samples: int = 500, compute_fcs: bool = True):
     from baselines.lead3 import Lead3Summarizer
     from baselines.textrank import TextRankSummarizer
     from baselines.bart_baseline import BartBaseline
+    from baselines.pegasus_baseline import PegasusBaseline
     from pipeline.pipeline import SummarizationPipeline
 
     # ── Build all systems ─────────────────────────────────────────────────────
@@ -59,22 +60,9 @@ def run_full_comparison(max_samples: int = 500, compute_fcs: bool = True):
     )
 
     # ── PEGASUS comparison ────────────────────────────────────────────────────
-    # Wraps PEGASUS fine-tuned model in same evaluate_system harness
-    if PEGASUS_CKPT.exists() and any(PEGASUS_CKPT.iterdir()):
-        from pipeline.generator import Generator
-        pegasus_gen = Generator(model_key="pegasus", use_finetuned=True, n_candidates=1)
-
-        def pegasus_summarise(article):
-            summary = pegasus_gen.generate_beam(article)
-            return {"summary": summary, "fallback": False}
-
-        systems["PEGASUS-fine-tuned"] = pegasus_summarise
-    else:
-        log.warning(
-            "PEGASUS-fine-tuned checkpoint not found at %s. Skipping. "
-            "To evaluate it, run: python train/train_seq2seq.py --model pegasus",
-            PEGASUS_CKPT
-        )
+    # google/pegasus-cnn_dailymail is already CNN/DailyMail-tuned, so we
+    # evaluate it directly instead of fine-tuning it again in this project.
+    systems["PEGASUS-pretrained"] = PegasusBaseline()
 
     # ── mBART comparison ──────────────────────────────────────────────────────
     if MBART_CKPT.exists() and any(MBART_CKPT.iterdir()):

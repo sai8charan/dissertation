@@ -33,6 +33,7 @@ ENV/
 # ── Jupyter Notebooks ─────────────────────────────────────────────────────────
 .ipynb_checkpoints/
 *.ipynb
+!googlecolab/*.ipynb
 
 # ── Fine-tuned model checkpoints (EXPORTED — committed for portability) ───────
 # Full fine-tuned model folders are tracked so they can be exported / shared.
