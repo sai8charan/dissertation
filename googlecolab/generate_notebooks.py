@@ -83,7 +83,7 @@ SEED            = 42
 
 # 50,000 training examples: ~17% of CNN/DM, achievable in one T4 session (~1.5h)
 # Justified in dissertation Section 3.x: resource-constrained fine-tuning
-MAX_TRAIN_SAMPLES = 50000
+MAX_TRAIN_SAMPLES = 12000
 
 BART_MAX_INPUT     = 1024
 BART_MAX_OUTPUT    = 128
@@ -418,7 +418,7 @@ out = RESULTS_DIR / "test_rouge_mbart.json"
 with open(out, "w") as f: json.dump(scores, f, indent=2)
 print("Saved to", out)"""
 
-    mbart_config_src = CONFIG_SRC + "\\n# mBART override\\nMAX_TRAIN_SAMPLES = 50000\\n"
+    mbart_config_src = CONFIG_SRC + "\\n# mBART override\\nMAX_TRAIN_SAMPLES = 12000\\n"
     mbart_nb = make_nb(
         title_md=("# Fine-tuning mBART-large-cc25 on CNN/DailyMail\\n"
                   "## M.Tech Dissertation — A Two-Stage Summarisation Pipeline\\n\\n"
