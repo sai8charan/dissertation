@@ -23,7 +23,7 @@ import pandas as pd
 
 sys.path.append(str(Path(__file__).parent.parent))
 from evaluation.eval_metrics import evaluate_system, load_all_results
-from config import RESULTS_DIR, BART_CKPT
+from config import RESULTS_DIR, BART_CKPT, USE_SELF_TRAINED_BART
 
 log = logging.getLogger(__name__)
 
@@ -39,17 +39,13 @@ def run_all_baselines(max_samples: int = 500, compute_fcs: bool = True):
         "BART-zero-shot":   BartBaseline(mode="zeroshot"),
     }
 
-    if BART_CKPT.exists() and any(BART_CKPT.iterdir()):
+    if USE_SELF_TRAINED_BART and BART_CKPT.exists() and any(BART_CKPT.iterdir()):
         try:
             systems["BART-fine-tuned"] = BartBaseline(mode="finetuned")
         except FileNotFoundError as e:
             log.warning("%s. Skipping BART-fine-tuned baseline.", e)
     else:
-        log.warning(
-            "BART-fine-tuned checkpoint not found at %s. Skipping evaluation. "
-            "To evaluate BART-fine-tuned, run: python train/train_seq2seq.py --model bart",
-            BART_CKPT
-        )
+        systems["BART-pretrained"] = BartBaseline(mode="finetuned")
 
     all_metrics = []
     for name, model in systems.items():

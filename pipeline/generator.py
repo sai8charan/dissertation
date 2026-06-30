@@ -26,11 +26,12 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 sys.path.append(str(Path(__file__).parent.parent))
 from config import (
-    BART_MODEL, BART_CKPT,
+    BART_FINETUNE_BASE_MODEL, BART_CKPT,
     MBART_MODEL, MBART_CKPT,
     BART_MAX_INPUT, BART_MAX_OUTPUT,
     NUM_CANDIDATES, TOP_P, TEMPERATURE,
-    SEED,
+    USE_SELF_TRAINED_BART, USE_SELF_TRAINED_MBART,
+    BART_TRAIN_MODEL,
 )
 
 log = logging.getLogger(__name__)
@@ -38,14 +39,18 @@ log = logging.getLogger(__name__)
 # ── Model registry ────────────────────────────────────────────────────────────
 _REGISTRY = {
     "bart": {
-        "pretrained": BART_MODEL,
+        "pretrained": BART_FINETUNE_BASE_MODEL,
+        "source":     BART_TRAIN_MODEL,
         "finetuned":  str(BART_CKPT),
+        "use_self_trained": USE_SELF_TRAINED_BART,
         "max_input":  BART_MAX_INPUT,
         "max_output": BART_MAX_OUTPUT,
     },
     "mbart": {
         "pretrained": MBART_MODEL,
+        "source":     MBART_MODEL,
         "finetuned":  str(MBART_CKPT),
+        "use_self_trained": USE_SELF_TRAINED_MBART,
         "max_input":  BART_MAX_INPUT,
         "max_output": BART_MAX_OUTPUT,
     },
@@ -69,7 +74,7 @@ class Generator:
     def __init__(
         self,
         model_key: str = "bart",
-        use_finetuned: bool = True,
+        use_finetuned: Optional[bool] = None,
         n_candidates: int = NUM_CANDIDATES,
         top_p: float = TOP_P,
         temperature: float = TEMPERATURE,
@@ -82,17 +87,21 @@ class Generator:
         self.device       = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
         cfg = _REGISTRY[model_key]
-        model_path = cfg["finetuned"] if use_finetuned else cfg["pretrained"]
+        if use_finetuned is None:
+            use_finetuned = cfg["use_self_trained"]
 
-        # If finetuned checkpoint doesn't exist yet, fall back to pretrained
+        if use_finetuned:
+            model_path = cfg["finetuned"]
+        else:
+            model_path = cfg["pretrained"]
+
+        # If self-trained checkpoint doesn't exist yet, fall back to the configured source model.
         if use_finetuned and not Path(model_path).exists():
             log.warning(
-                "Fine-tuned checkpoint not found at %s. "
-                "Falling back to pretrained weights (%s). "
-                "Run train/train_seq2seq.py --model %s first.",
-                model_path, cfg["pretrained"], model_key
+                "Self-trained checkpoint not found at %s. Falling back to source model (%s).",
+                model_path, cfg["source"]
             )
-            model_path = cfg["pretrained"]
+            model_path = cfg["source"]
 
         log.info("Loading generator from %s …", model_path)
         self.tokenizer  = AutoTokenizer.from_pretrained(model_path)

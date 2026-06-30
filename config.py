@@ -25,17 +25,26 @@ SUMMARY_COL     = "highlights"
 TRAIN_SPLIT     = 0.70
 VAL_SPLIT       = 0.15
 TEST_SPLIT      = 0.15
-MAX_TRAIN_SAMPLES = 50_000   # Set to 50,000 for standard training size (matches Colab setup)
+MAX_TRAIN_SAMPLES = 20_000   # Updated dissertation default
 
 # ── Models ────────────────────────────────────────────────────────────────────
-BART_MODEL      = "facebook/bart-large-cnn"   # pre-trained starting point
-PEGASUS_MODEL   = "google/pegasus-cnn_dailymail"  # used directly; no project checkpoint
-MBART_MODEL     = "facebook/mbart-large-cc25"
-NLI_MODEL       = "cross-encoder/nli-deberta-v3-base"
-EMBED_MODEL     = "sentence-transformers/all-MiniLM-L6-v2"
+BART_ZERO_SHOT_MODEL      = "facebook/bart-large"
+BART_FINETUNE_BASE_MODEL  = "facebook/bart-large-cnn"  # set to "facebook/bart-large" to self-train from bart-large
+BART_MODEL                = BART_FINETUNE_BASE_MODEL    # backward-compatible alias
+PEGASUS_MODEL             = "google/pegasus-cnn_dailymail"  # used directly; no project checkpoint
+MBART_MODEL               = "facebook/mbart-large-cc25"
+NLI_MODEL              = "cross-encoder/nli-deberta-v3-base"
+EMBED_MODEL            = "sentence-transformers/all-MiniLM-L6-v2"
 
-BART_CKPT       = CKPT_DIR / "bart_finetuned"   # saved after training
-MBART_CKPT      = CKPT_DIR / "mbart_finetuned"
+BART_CKPT              = CKPT_DIR / "bart_finetuned"   # saved after training
+MBART_CKPT             = CKPT_DIR / "mbart_finetuned"
+
+USE_SELF_TRAINED_BART   = False
+USE_SELF_TRAINED_MBART  = False
+
+# Training always starts from this base model; runtime checkpoint usage is controlled
+# independently by USE_SELF_TRAINED_BART / USE_SELF_TRAINED_MBART.
+BART_TRAIN_MODEL        = BART_FINETUNE_BASE_MODEL
 
 # ── Tokeniser limits ──────────────────────────────────────────────────────────
 BART_MAX_INPUT  = 1024   # hard token limit for BART encoder

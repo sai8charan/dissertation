@@ -36,6 +36,7 @@ from config import (
     XLSUM_LANG, XLSUM_TRAIN_SIZE, XLSUM_TEST_SIZE,
     TRANSLATE_MODEL, MULTILINGUAL_NLI,
     MBART_MODEL, CKPT_DIR, RESULTS_DIR, SEED,
+    USE_SELF_TRAINED_MBART,
 )
 
 log = logging.getLogger(__name__)
@@ -56,7 +57,7 @@ def load_xlsum_hindi(test_size: int = XLSUM_TEST_SIZE) -> List[Dict]:
 class TranslateThenSummarise:
     """
     Translates Hindi article to English using Helsinki-NLP OPUS-MT,
-    then runs the full English pipeline (fine-tuned BART + verifier).
+    then runs the full English pipeline (config-driven BART + verifier).
     """
 
     def __init__(self):
@@ -68,7 +69,7 @@ class TranslateThenSummarise:
         self.trans_model     = MarianMTModel.from_pretrained(TRANSLATE_MODEL).to(self.device)
         log.info("Loading English summarisation pipeline …")
         from pipeline.pipeline import SummarizationPipeline
-        self.pipe = SummarizationPipeline(model_key="bart", use_finetuned=True)
+        self.pipe = SummarizationPipeline(model_key="bart", use_finetuned=None)
 
     def translate(self, hindi_text: str) -> str:
         import torch
@@ -93,9 +94,9 @@ class TranslateThenSummarise:
 
 class DirectMBARTSummarise:
     """
-    Fine-tuned mBART-50 for direct Hindi-to-Hindi summarisation.
-    Requires running: python train/train_seq2seq.py --model mbart
-    with XL-Sum Hindi data (modify data pipeline for that run).
+    Direct mBART for Hindi-to-Hindi summarisation.
+    Defaults to pretrained facebook/mbart-large-cc25.
+    If USE_SELF_TRAINED_MBART=True, attempts checkpoints/mbart_finetuned first.
     """
 
     def __init__(self):
@@ -105,12 +106,12 @@ class DirectMBARTSummarise:
         ckpt_path   = str(CKPT_DIR / "mbart_finetuned")
         fallback    = MBART_MODEL
 
-        model_path = ckpt_path if Path(ckpt_path).exists() else fallback
-        if not Path(ckpt_path).exists():
+        use_ckpt = USE_SELF_TRAINED_MBART and Path(ckpt_path).exists()
+        model_path = ckpt_path if use_ckpt else fallback
+        if USE_SELF_TRAINED_MBART and not Path(ckpt_path).exists():
             log.warning(
                 "mBART fine-tuned checkpoint not found. "
-                "Using pretrained weights — quality will be low. "
-                "Run: python train/train_seq2seq.py --model mbart"
+                "Using pretrained weights instead."
             )
 
         log.info("Loading mBART from %s", model_path)

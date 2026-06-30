@@ -61,7 +61,7 @@ st.markdown("""
 @st.cache_resource(show_spinner="Loading models … (first run only)")
 def load_pipeline():
     from pipeline.pipeline import SummarizationPipeline
-    return SummarizationPipeline(model_key="bart", use_finetuned=True)
+    return SummarizationPipeline(model_key="bart")
 
 @st.cache_resource(show_spinner=False)
 def load_lead3():
@@ -263,27 +263,19 @@ if run_btn:
         lead3 = load_lead3()
         
         bart_base = None
-        has_bart = False
-        try:
-            bart_base = load_bart_baseline()
-            has_bart = True
-        except FileNotFoundError:
-            st.warning("Fine-tuned BART baseline checkpoint not found. Only Lead-3 will be evaluated.")
+        bart_base = load_bart_baseline()
 
         with st.spinner("Running baselines …"):
             r_lead3 = lead3(article_text)
-            r_bart  = bart_base(article_text) if (has_bart and bart_base is not None) else None
+            r_bart  = bart_base(article_text)
 
         b1, b2 = st.columns(2)
         with b1:
             st.markdown("**Lead-3 baseline**")
             st.info(r_lead3["summary"])
         with b2:
-            st.markdown("**Fine-tuned BART (single-stage)**")
-            if has_bart and r_bart:
-                st.info(r_bart["summary"])
-            else:
-                st.warning("BART baseline not trained yet. Run `python train/train_seq2seq.py --model bart` first.")
+            st.markdown("**BART source/fine-tuned baseline**")
+            st.info(r_bart["summary"])
 
     # ── Download ──────────────────────────────────────────────────────────────
     st.markdown("---")
@@ -313,7 +305,7 @@ else:
     with c1:
         st.markdown("**🔍 Stage 1**  \nEvidence retrieval  \nHybrid BM25 + embeddings")
     with c2:
-        st.markdown("**🤖 Stage 2**  \nAbstractive generation  \nFine-tuned BART, N candidates")
+        st.markdown("**🤖 Stage 2**  \nAbstractive generation  \nBART, N candidates")
     with c3:
         st.markdown("**✅ Stage 3**  \nEvidence verification  \nNLI factual consistency")
     with c4:

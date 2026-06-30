@@ -27,7 +27,13 @@ import time
 from typing import Optional, Dict
 
 sys.path.append(str(Path(__file__).parent.parent))
-from config import RETRIEVAL_K, NUM_CANDIDATES, FCS_THRESHOLD
+from config import (
+    RETRIEVAL_K,
+    NUM_CANDIDATES,
+    FCS_THRESHOLD,
+    USE_SELF_TRAINED_BART,
+    USE_SELF_TRAINED_MBART,
+)
 
 from pipeline.retrieval import EvidenceRetriever
 from pipeline.generator import Generator
@@ -54,7 +60,7 @@ class SummarizationPipeline:
     def __init__(
         self,
         model_key: str      = "bart",
-        use_finetuned: bool = True,
+        use_finetuned: Optional[bool] = None,
         retrieval_method: str = "hybrid",
         n_candidates: int   = NUM_CANDIDATES,
         retrieval_k: int    = RETRIEVAL_K,
@@ -63,6 +69,9 @@ class SummarizationPipeline:
     ):
         self.retrieval_method = retrieval_method
         log.info("Initialising SummarizationPipeline …")
+
+        if use_finetuned is None:
+            use_finetuned = USE_SELF_TRAINED_BART if model_key == "bart" else USE_SELF_TRAINED_MBART
 
         self.retriever = EvidenceRetriever(top_k=retrieval_k)
         self.generator = Generator(

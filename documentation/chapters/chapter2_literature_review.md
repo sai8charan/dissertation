@@ -20,14 +20,14 @@ Single-stage abstractive models encode a truncated prefix of the article and dec
 
 Pre-trained sequence-to-sequence transformers have become the dominant paradigm for abstractive news summarisation. Three models are compared in this work:
 
-**BART** (Lewis et al., 2020) is trained as a denoising autoencoder: text is corrupted with span masking and the model learns to reconstruct it. Fine-tuned on CNN/DailyMail, BART-large-cnn achieves approximately 21 ROUGE-2 on the test set with a 1024-token encoder limit. BART serves as the primary generator in the proposed pipeline because of its strong CNN/DailyMail pretraining and flexible input length.
+**BART** (Lewis et al., 2020) is trained as a denoising autoencoder: text is corrupted with span masking and the model learns to reconstruct it. Fine-tuned on CNN/DailyMail, BART-large-cnn achieves approximately 21 ROUGE-2 on the test set with a 1024-token encoder limit. In this project, BART is used in two roles: a zero-shot baseline (`facebook/bart-large`) and a configurable pretrained or self-trained generator path (`facebook/bart-large-cnn` or `facebook/bart-large` as selected in configuration).
 
 **PEGASUS** (Zhang et al., 2020) uses gap-sentence generation as a pretraining objective: sentences are removed from documents and the model learns to generate them from the remaining context. PEGASUS-cnn_dailymail is pretrained on the target domain and reports comparable ROUGE-2 (~21) with a shorter 512-token input limit. It is included as a domain-pretrained comparison baseline.
 
-**mBART** (Liu et al., 2020) extends BART to multilingual corpora via denoising pretraining across 25 languages. While not CNN/DailyMail-specific, mBART supports the dissertation's multilingual feasibility study on Hindi XL-Sum. Its English summarisation quality is typically below domain-specific BART/PEGASUS on CNN/DailyMail but provides a pathway to low-resource languages.
+**mBART** (Liu et al., 2020) extends BART to multilingual corpora via denoising pretraining across 25 languages. While not CNN/DailyMail-specific, mBART supports the dissertation's multilingual feasibility study on Hindi XL-Sum. Its English summarisation quality is typically below domain-specific BART/PEGASUS on CNN/DailyMail but provides a pathway to low-resource languages. The implementation defaults to pretrained `facebook/mbart-large-cc25`, with optional project checkpoint usage enabled through configuration.
 
 | Model | Pretraining objective | Max input | CNN/DM ROUGE-2 (approx.) |
-| BART-large-cnn | Denoising (span corruption) | 1024 | ~21 |
+| BART-large / BART-large-cnn (config-dependent in implementation) | Denoising (span corruption) | 1024 | ~21 (for BART-large-cnn fine-tuned on CNN/DM) |
 | PEGASUS-cnn_dailymail | Gap-sentence generation | 512 | ~21 |
 | mBART-large-cc25 | Multilingual denoising | 1024 | lower (cross-lingual) |
 

@@ -20,7 +20,7 @@ dissertation/
 ├── baselines/
 │   ├── lead3.py                     # Lead-3 baseline
 │   ├── textrank.py                  # TextRank extractive baseline
-│   ├── bart_baseline.py             # Zero-shot and fine-tuned BART baselines
+│   ├── bart_baseline.py             # Zero-shot + config-driven BART pretrained/self-trained baseline
 │   └── pegasus_baseline.py          # Direct pretrained PEGASUS baseline
 │
 ├── train/
@@ -97,6 +97,13 @@ python experiments/run_baselines.py --max_samples 200 --no_fcs
 `--no_fcs` skips the slow NLI-FCS computation during early development.
 Results saved to `results/baselines_table.csv`.
 
+By default (`USE_SELF_TRAINED_BART = False`), the run includes:
+- `BART-zero-shot` (facebook/bart-large)
+- `BART-pretrained` (configured BART fine-tune base)
+
+If `USE_SELF_TRAINED_BART = True` and `checkpoints/bart_finetuned/` exists,
+`BART-fine-tuned` is evaluated instead of `BART-pretrained`.
+
 ### Step 3 — Fine-tune BART
 
 ```bash
@@ -104,6 +111,10 @@ python train/train_seq2seq.py --model bart
 ```
 Takes ~6–8 hours on an A100. Checkpoint saved to `checkpoints/bart_finetuned/`.
 For fast iteration, set `MAX_TRAIN_SAMPLES = 5000` in `config.py` first.
+To choose the BART fine-tuning starting point, set
+`BART_FINETUNE_BASE_MODEL` in `config.py` to either:
+- `facebook/bart-large-cnn` (default)
+- `facebook/bart-large`
 
 ### Step 4 — Direct PEGASUS comparison and mBART
 
@@ -112,6 +123,11 @@ python train/train_seq2seq.py --model mbart
 ```
 PEGASUS is loaded directly from `google/pegasus-cnn_dailymail`, so no
 additional fine-tuning step is needed for that comparison row.
+
+mBART runtime behavior is config-driven:
+- `USE_SELF_TRAINED_MBART = False` (default): uses `facebook/mbart-large-cc25`
+- `USE_SELF_TRAINED_MBART = True`: uses `checkpoints/mbart_finetuned/` when present,
+  otherwise falls back to `facebook/mbart-large-cc25`
 
 ### Step 5 — Full pipeline evaluation
 
@@ -166,7 +182,11 @@ Opens at http://localhost:8501
 
 | Parameter | Default | What it controls |
 |---|---|---|
-| `MAX_TRAIN_SAMPLES` | `None` | Set to `5000` for fast iteration |
+| `MAX_TRAIN_SAMPLES` | `20_000` | Number of training samples (reduce to `5000` for fast iteration) |
+| `BART_ZERO_SHOT_MODEL` | `facebook/bart-large` | Zero-shot BART baseline model |
+| `BART_FINETUNE_BASE_MODEL` | `facebook/bart-large-cnn` | BART source model used for pretrained path and fine-tuning start |
+| `USE_SELF_TRAINED_BART` | `False` | If true, use `checkpoints/bart_finetuned/` when available |
+| `USE_SELF_TRAINED_MBART` | `False` | If true, use `checkpoints/mbart_finetuned/` when available |
 | `NUM_CANDIDATES` | `5` | Best-of-N candidates generated per article |
 | `RETRIEVAL_K` | `8` | Max sentences selected by retriever |
 | `FCS_THRESHOLD` | `0.40` | Below this → extractive fallback |
@@ -185,9 +205,9 @@ Target thresholds are defined in `config.py` (`EXPECTED_TARGETS`). After evaluat
 | Lead-3 | TBD | TBD | TBD | TBD | TBD | — | — |
 | TextRank | TBD | TBD | TBD | TBD | TBD | — | — |
 | BART zero-shot | TBD | TBD | TBD | TBD | TBD | — | — |
-| BART fine-tuned | TBD | TBD | TBD | TBD | TBD | — | baseline FCS ≤ 0.55 |
+| BART pretrained / fine-tuned (config-driven) | TBD | TBD | TBD | TBD | TBD | — | baseline FCS ≤ 0.55 |
 | PEGASUS pretrained | TBD | TBD | TBD | TBD | TBD | — | — |
-| mBART fine-tuned | TBD | TBD | TBD | TBD | TBD | — | — |
+| mBART pretrained / fine-tuned (config-driven) | TBD | TBD | TBD | TBD | TBD | — | — |
 | **Proposed pipeline** | **TBD** | **TBD (target ≥ 18.0)** | **TBD** | **TBD** | **TBD (target ≥ 0.65)** | **TBD (target < 15%)** | `check_targets.py` |
 
 Human evaluation targets: factual accuracy ≥ 4.0/5.0, Cohen's κ ≥ 0.6 (checked via `human_eval.py --compute`).

@@ -36,8 +36,9 @@ from transformers import BartTokenizer, BartForConditionalGeneration
 
 sys.path.append(str(Path(__file__).parent.parent))
 from config import (
-    BART_MODEL, BART_CKPT,
+    BART_FINETUNE_BASE_MODEL, BART_CKPT,
     BART_MAX_INPUT, BART_MAX_OUTPUT,
+    USE_SELF_TRAINED_BART,
     FIGURES_DIR,
 )
 
@@ -63,10 +64,10 @@ class AttentionVisualizer:
     def __init__(self, device: Optional[str] = None):
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
-        model_path = str(BART_CKPT)
-        if not Path(model_path).exists():
-            log.warning("Fine-tuned checkpoint not found, using pretrained.")
-            model_path = BART_MODEL
+        model_path = str(BART_CKPT) if USE_SELF_TRAINED_BART else BART_FINETUNE_BASE_MODEL
+        if USE_SELF_TRAINED_BART and not Path(model_path).exists():
+            log.warning("Fine-tuned checkpoint not found, using pretrained source model.")
+            model_path = BART_FINETUNE_BASE_MODEL
 
         log.info("Loading BART for attention extraction from %s", model_path)
         self.tokenizer = BartTokenizer.from_pretrained(model_path)

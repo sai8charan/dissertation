@@ -1,0 +1,12 @@
+{
+  "system": "Pipeline (hybrid+verify+rerank)",
+  "n_samples": 1,
+  "rouge1": 36.59,
+  "rouge2": 17.5,
+  "rougeL": 29.27,
+  "bertscore_f1": 88.15,
+  "fallback_rate": 0.0,
+  "mean_latency_s": 155.88,
+  "nli_fcs": null,
+  "hallucination_rate": null
+}

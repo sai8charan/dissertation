@@ -21,7 +21,7 @@ import pandas as pd
 
 sys.path.append(str(Path(__file__).parent.parent))
 from evaluation.eval_metrics import evaluate_system
-from config import RESULTS_DIR, BART_CKPT, MBART_CKPT
+from config import RESULTS_DIR, BART_CKPT, USE_SELF_TRAINED_BART, USE_SELF_TRAINED_MBART
 
 log = logging.getLogger(__name__)
 
@@ -42,21 +42,17 @@ def run_full_comparison(max_samples: int = 500, compute_fcs: bool = True):
     systems["TextRank"]        = TextRankSummarizer()
     systems["BART-zero-shot"]  = BartBaseline(mode="zeroshot")
 
-    if BART_CKPT.exists() and any(BART_CKPT.iterdir()):
+    if USE_SELF_TRAINED_BART and BART_CKPT.exists() and any(BART_CKPT.iterdir()):
         try:
             systems["BART-fine-tuned"] = BartBaseline(mode="finetuned")
         except FileNotFoundError as e:
             log.warning("%s. Skipping BART-fine-tuned.", e)
     else:
-        log.warning(
-            "BART-fine-tuned checkpoint not found at %s. Skipping. "
-            "To evaluate it, run: python train/train_seq2seq.py --model bart",
-            BART_CKPT
-        )
+        systems["BART-pretrained"] = BartBaseline(mode="finetuned")
 
     # Proposed pipeline
     systems["Pipeline (hybrid+verify+rerank)"] = SummarizationPipeline(
-        model_key="bart", use_finetuned=True, retrieval_method="hybrid"
+        model_key="bart", use_finetuned=USE_SELF_TRAINED_BART, retrieval_method="hybrid"
     )
 
     # ── PEGASUS comparison ────────────────────────────────────────────────────
@@ -65,21 +61,14 @@ def run_full_comparison(max_samples: int = 500, compute_fcs: bool = True):
     systems["PEGASUS-pretrained"] = PegasusBaseline()
 
     # ── mBART comparison ──────────────────────────────────────────────────────
-    if MBART_CKPT.exists() and any(MBART_CKPT.iterdir()):
-        from pipeline.generator import Generator
-        mbart_gen = Generator(model_key="mbart", use_finetuned=True, n_candidates=1)
+    from pipeline.generator import Generator
+    mbart_gen = Generator(model_key="mbart", use_finetuned=USE_SELF_TRAINED_MBART, n_candidates=1)
 
-        def mbart_summarise(article):
-            summary = mbart_gen.generate_beam(article)
-            return {"summary": summary, "fallback": False}
+    def mbart_summarise(article):
+        summary = mbart_gen.generate_beam(article)
+        return {"summary": summary, "fallback": False}
 
-        systems["mBART-fine-tuned"] = mbart_summarise
-    else:
-        log.warning(
-            "mBART-fine-tuned checkpoint not found at %s. Skipping. "
-            "To evaluate it, run: python train/train_seq2seq.py --model mbart",
-            MBART_CKPT
-        )
+    systems["mBART-pretrained" if not USE_SELF_TRAINED_MBART else "mBART-fine-tuned"] = mbart_summarise
 
     # ── Evaluate all ──────────────────────────────────────────────────────────
     all_metrics = []

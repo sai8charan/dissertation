@@ -18,8 +18,9 @@ from transformers import BartTokenizer, BartForConditionalGeneration
 
 sys.path.append(str(Path(__file__).parent.parent))
 from config import (
-    BART_MODEL, BART_CKPT,
+    BART_ZERO_SHOT_MODEL, BART_MODEL, BART_CKPT,
     BART_MAX_INPUT, BART_MAX_OUTPUT,
+    USE_SELF_TRAINED_BART,
     NUM_BEAMS,
 )
 
@@ -30,8 +31,10 @@ class BartBaseline:
     """
     BART summariser.
 
-    mode="zeroshot" : loads facebook/bart-large-cnn weights, no fine-tuning.
-    mode="finetuned": loads from BART_CKPT (must run train/train_seq2seq.py first).
+    mode="zeroshot" : loads facebook/bart-large weights, no fine-tuning.
+    mode="finetuned": if USE_SELF_TRAINED_BART=True and checkpoint exists,
+                       loads from BART_CKPT; otherwise uses configured
+                       pretrained source (BART_FINETUNE_BASE_MODEL).
     """
 
     def __init__(
@@ -46,21 +49,21 @@ class BartBaseline:
             "mode must be 'zeroshot' or 'finetuned'"
 
         self.mode       = mode
-        self.name       = f"BART-{mode}"
         self.max_input  = max_input
         self.max_output = max_output
         self.num_beams  = num_beams
         self.device     = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
         if mode == "finetuned":
-            if not BART_CKPT.exists() or not any(BART_CKPT.iterdir()):
-                raise FileNotFoundError(
-                    f"Fine-tuned BART checkpoint not found at '{BART_CKPT}'. "
-                    "You must run train/train_seq2seq.py --model bart first to train the model."
-                )
-            model_path = str(BART_CKPT)
+            if USE_SELF_TRAINED_BART and BART_CKPT.exists() and any(BART_CKPT.iterdir()):
+                model_path = str(BART_CKPT)
+                self.name = "BART-fine-tuned"
+            else:
+                model_path = BART_MODEL
+                self.name = "BART-pretrained"
         else:
-            model_path = BART_MODEL
+            model_path = BART_ZERO_SHOT_MODEL
+            self.name = "BART-zero-shot"
 
         log.info("Loading %s from %s …", self.name, model_path)
         self.tokenizer = BartTokenizer.from_pretrained(model_path)
