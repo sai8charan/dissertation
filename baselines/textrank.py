@@ -25,6 +25,7 @@ from sentence_transformers import SentenceTransformer
 
 sys.path.append(str(Path(__file__).parent.parent))
 from config import EMBED_MODEL, RETRIEVAL_K
+from utils.hf_local import configure_hf_offline, hf_from_pretrained_kwargs
 
 
 class TextRankSummarizer:
@@ -54,7 +55,9 @@ class TextRankSummarizer:
     @property
     def model(self):
         if self._model is None:
-            self._model = SentenceTransformer(self._model_name)
+            configure_hf_offline()
+            kwargs = hf_from_pretrained_kwargs()
+            self._model = SentenceTransformer(self._model_name, **kwargs)
         return self._model
 
     def _build_graph(self, embeddings: np.ndarray) -> nx.Graph:

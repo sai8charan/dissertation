@@ -33,9 +33,10 @@ log = logging.getLogger(__name__)
 
 
 def run_full_comparison(
-    max_samples: int = 500,
+    max_samples: int = 100,
     compute_fcs: bool = True,
     only_systems: list = None,
+    safety_mode: str = "dynamic",
 ):
 
     from baselines.lead3 import Lead3Summarizer
@@ -62,7 +63,10 @@ def run_full_comparison(
 
     # Proposed pipeline
     systems["Pipeline (hybrid+verify+rerank)"] = SummarizationPipeline(
-        model_key="bart", use_finetuned=USE_SELF_TRAINED_BART, retrieval_method="hybrid"
+        model_key="bart",
+        use_finetuned=USE_SELF_TRAINED_BART,
+        retrieval_method="hybrid",
+        safety_mode=safety_mode,
     )
 
     # ── PEGASUS comparison ────────────────────────────────────────────────────
@@ -118,14 +122,16 @@ def run_full_comparison(
 
 
 def run_with_target_check(
-    max_samples: int = 500,
+    max_samples: int = 100,
     compute_fcs: bool = True,
     only_systems: list = None,
+    safety_mode: str = "dynamic",
 ):
     df = run_full_comparison(
         max_samples=max_samples,
         compute_fcs=compute_fcs,
         only_systems=only_systems,
+        safety_mode=safety_mode,
     )
     from evaluation.check_targets import main as check_main
     check_main(RESULTS_DIR / "full_comparison_table.csv")
@@ -135,7 +141,7 @@ def run_with_target_check(
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max_samples", type=int, default=500)
+    parser.add_argument("--max_samples", type=int, default=100)
     parser.add_argument("--no_fcs", action="store_true")
     parser.add_argument(
         "--check_targets",
@@ -152,16 +158,24 @@ if __name__ == "__main__":
             "bart, lead3, textrank. E.g. --systems pipeline pegasus"
         ),
     )
+    parser.add_argument(
+        "--safety_mode",
+        choices=["fixed", "dynamic"],
+        default="dynamic",
+        help="Safety switch mode for pipeline system.",
+    )
     args = parser.parse_args()
     if args.check_targets:
         run_with_target_check(
             max_samples=args.max_samples,
             compute_fcs=not args.no_fcs,
             only_systems=args.systems,
+            safety_mode=args.safety_mode,
         )
     else:
         run_full_comparison(
             max_samples=args.max_samples,
             compute_fcs=not args.no_fcs,
             only_systems=args.systems,
+            safety_mode=args.safety_mode,
         )

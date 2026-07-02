@@ -31,6 +31,7 @@ from config import (
     FCS_WEIGHT, BERTSCORE_WEIGHT,
     BERTSCORE_LANG, FCS_THRESHOLD,
 )
+from utils.hf_local import configure_hf_offline
 
 log = logging.getLogger(__name__)
 
@@ -66,6 +67,7 @@ class PreferenceReranker:
         self.bertscore_lang   = bertscore_lang
         # Load roberta-large once at construction time; reused for every article
         # so we never re-download or re-initialise weights during evaluation.
+        configure_hf_offline()
         log.info("Loading BERTScorer (roberta-large) — loaded once, cached for all articles …")
         self._scorer = BERTScorer(lang=bertscore_lang, rescale_with_baseline=False)
 
@@ -97,6 +99,9 @@ class PreferenceReranker:
         candidates: List[str],
         verifications: List[Dict],
         selected_context: str,
+        fcs_threshold: Optional[float] = None,
+        safety_mode: str = "fixed",
+        difficulty_details: Optional[Dict] = None,
     ) -> Dict:
         """
         Rank candidates and select the best one (or fall back).
@@ -119,6 +124,7 @@ class PreferenceReranker:
               "evidence_trace"  : list   — sentence-level trace of chosen summary
             }
         """
+        threshold = self.fcs_threshold if fcs_threshold is None else float(fcs_threshold)
         if not candidates:
             return {
                 "summary": selected_context,
@@ -129,6 +135,9 @@ class PreferenceReranker:
                 "final_score": 0.0,
                 "all_scores": [],
                 "evidence_trace": [],
+                "threshold_used": threshold,
+                "safety_mode": safety_mode,
+                "difficulty_details": difficulty_details or {},
             }
 
         # ── BERTScore for all candidates ──────────────────────────────────────
@@ -158,10 +167,10 @@ class PreferenceReranker:
         best_score = combined[best_idx]
 
         # ── Extractive fallback check ─────────────────────────────────────────
-        if best_fcs < self.fcs_threshold:
+        if best_fcs < threshold:
             log.debug(
                 "FCS %.3f below threshold %.3f → extractive fallback",
-                best_fcs, self.fcs_threshold
+                best_fcs, threshold
             )
             return {
                 "summary":        selected_context,
@@ -172,6 +181,9 @@ class PreferenceReranker:
                 "final_score":    best_score,
                 "all_scores":     all_scores,
                 "evidence_trace": [],
+                "threshold_used": threshold,
+                "safety_mode": safety_mode,
+                "difficulty_details": difficulty_details or {},
             }
 
         return {
@@ -183,6 +195,9 @@ class PreferenceReranker:
             "final_score":    best_score,
             "all_scores":     all_scores,
             "evidence_trace": verifications[best_idx]["evidence_trace"],
+            "threshold_used": threshold,
+            "safety_mode": safety_mode,
+            "difficulty_details": difficulty_details or {},
         }
 
     def __call__(

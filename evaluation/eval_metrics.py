@@ -22,6 +22,7 @@ Usage:
 import argparse
 import json
 import logging
+import re
 import sys
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
@@ -42,6 +43,79 @@ from data.data_pipeline import get_datasets
 from pipeline.verifier import EvidenceVerifier
 
 log = logging.getLogger(__name__)
+
+
+def _difficulty_proxy(article: str) -> float:
+    """Lightweight proxy used only for balanced sampling, not scoring."""
+    if not article:
+        return 0.0
+
+    word_tokens = re.findall(r"[A-Za-z][A-Za-z\-']*|\d+(?:[\.,]\d+)?", article)
+    word_count = len(word_tokens)
+    sent_count = max(1, len(re.findall(r"[.!?]", article)))
+
+    entity_like = 0
+    for tok in word_tokens:
+        if any(ch.isdigit() for ch in tok):
+            entity_like += 1
+            continue
+        if tok[0].isupper() and len(tok) > 2:
+            entity_like += 1
+
+    entity_density = (entity_like / max(word_count, 1)) * 100.0
+    words_per_sentence = word_count / sent_count
+
+    # Normalized components with clipping to keep this robust.
+    length_norm = min(1.0, max(0.0, (word_count - 120) / (900 - 120)))
+    entity_norm = min(1.0, max(0.0, (entity_density - 2.0) / (18.0 - 2.0)))
+    syntax_norm = min(1.0, max(0.0, (words_per_sentence - 12.0) / (35.0 - 12.0)))
+
+    return 0.45 * length_norm + 0.35 * entity_norm + 0.20 * syntax_norm
+
+
+def _select_diverse_test_subset(test, max_samples: int, seed: int = 42, n_bins: int = 5):
+    """
+    Select a small subset (50–100) with broad difficulty coverage using
+    stratified sampling on a lightweight difficulty proxy.
+    """
+    if not max_samples or max_samples >= len(test):
+        return test
+
+    rng = np.random.default_rng(seed)
+    articles = test[ARTICLE_COL]
+    scores = np.array([_difficulty_proxy(a) for a in articles], dtype=float)
+
+    quantiles = np.linspace(0.0, 1.0, n_bins + 1)
+    edges = np.quantile(scores, quantiles)
+    edges[0], edges[-1] = -np.inf, np.inf
+
+    # Avoid duplicate edges when distribution is narrow.
+    for i in range(1, len(edges) - 1):
+        if edges[i] <= edges[i - 1]:
+            edges[i] = edges[i - 1] + 1e-9
+
+    per_bin = max_samples // n_bins
+    selected = []
+    all_indices = np.arange(len(test))
+
+    for b in range(n_bins):
+        mask = (scores > edges[b]) & (scores <= edges[b + 1])
+        candidates = all_indices[mask]
+        if len(candidates) == 0:
+            continue
+        take = min(per_bin, len(candidates))
+        picked = rng.choice(candidates, size=take, replace=False)
+        selected.extend(picked.tolist())
+
+    remaining = max_samples - len(selected)
+    if remaining > 0:
+        pool = np.setdiff1d(all_indices, np.array(selected, dtype=int), assume_unique=False)
+        if len(pool) > 0:
+            picked = rng.choice(pool, size=min(remaining, len(pool)), replace=False)
+            selected.extend(picked.tolist())
+
+    rng.shuffle(selected)
+    return test.select(selected[:max_samples])
 
 
 # ── ROUGE ─────────────────────────────────────────────────────────────────────
@@ -91,7 +165,8 @@ def compute_nli_fcs(
     nltk.download("punkt", quiet=True)       # fallback for older NLTK
     from nltk.tokenize import sent_tokenize
 
-    indices = np.random.choice(len(predictions), min(sample_n, len(predictions)), replace=False)
+    rng = np.random.default_rng(42)
+    indices = rng.choice(len(predictions), min(sample_n, len(predictions)), replace=False)
     fcs_scores = []
     halluc_counts, total_sents = 0, 0
 
@@ -122,7 +197,7 @@ def compute_nli_fcs(
 def evaluate_system(
     summarise_fn: Callable[[str], Dict],
     system_name: str,
-    max_samples: int = 500,
+    max_samples: int = 100,
     compute_fcs: bool = True,
     save_results: bool = True,
 ) -> Dict:
@@ -142,10 +217,11 @@ def evaluate_system(
     splits = get_datasets()
     test   = splits["test"]
     if max_samples:
-        test = test.select(range(min(max_samples, len(test))))
+        test = _select_diverse_test_subset(test, min(max_samples, len(test)))
 
     predictions, references, articles = [], [], []
     fallback_flags, latencies = [], []
+    thresholds_used, difficulty_scores, safety_modes = [], [], []
 
     for example in tqdm(test, desc=f"Evaluating {system_name}"):
         article  = example[ARTICLE_COL]
@@ -156,6 +232,9 @@ def evaluate_system(
         articles.append(article)
         fallback_flags.append(result.get("fallback", False))
         latencies.append(result.get("latency_s", 0.0))
+        thresholds_used.append(result.get("threshold_used", None))
+        difficulty_scores.append(result.get("difficulty_score", None))
+        safety_modes.append(result.get("safety_mode", "fixed"))
 
     # ── Compute all metrics ───────────────────────────────────────────────────
     log.info("Computing ROUGE …")
@@ -166,6 +245,12 @@ def evaluate_system(
 
     fallback_rate = round(sum(fallback_flags) / len(fallback_flags) * 100, 2)
     mean_latency  = round(float(np.mean(latencies)), 3)
+    valid_thresholds = [t for t in thresholds_used if t is not None]
+    valid_difficulties = [d for d in difficulty_scores if d is not None]
+    dynamic_mode_share = round(
+        100.0 * sum(1 for m in safety_modes if m == "dynamic") / max(len(safety_modes), 1),
+        2,
+    )
 
     metrics = {
         "system":          system_name,
@@ -174,6 +259,9 @@ def evaluate_system(
         "bertscore_f1":    bs_f1,
         "fallback_rate":   fallback_rate,
         "mean_latency_s":  mean_latency,
+        "mean_threshold":  round(float(np.mean(valid_thresholds)), 4) if valid_thresholds else None,
+        "mean_difficulty": round(float(np.mean(valid_difficulties)), 4) if valid_difficulties else None,
+        "dynamic_mode_share": dynamic_mode_share,
     }
 
     if compute_fcs:
@@ -202,6 +290,9 @@ def evaluate_system(
             "gold":       references,
             "prediction": predictions,
             "fallback":   fallback_flags,
+            "threshold_used": thresholds_used,
+            "difficulty_score": difficulty_scores,
+            "safety_mode": safety_modes,
         })
         df.to_csv(RESULTS_DIR / f"preds_{system_name}.csv", index=False)
 
@@ -228,7 +319,7 @@ if __name__ == "__main__":
                         choices=["lead3", "textrank", "bart_zeroshot",
                                  "bart_finetuned", "pegasus_pretrained",
                                  "pipeline"])
-    parser.add_argument("--max_samples", type=int, default=200)
+    parser.add_argument("--max_samples", type=int, default=100)
     parser.add_argument("--no_fcs", action="store_true")
     args = parser.parse_args()
 

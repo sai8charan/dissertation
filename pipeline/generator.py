@@ -33,6 +33,7 @@ from config import (
     USE_SELF_TRAINED_BART, USE_SELF_TRAINED_MBART,
     BART_TRAIN_MODEL,
 )
+from utils.hf_local import configure_hf_offline, hf_from_pretrained_kwargs
 
 log = logging.getLogger(__name__)
 
@@ -104,8 +105,10 @@ class Generator:
             model_path = cfg["source"]
 
         log.info("Loading generator from %s …", model_path)
-        self.tokenizer  = AutoTokenizer.from_pretrained(model_path)
-        self.model      = AutoModelForSeq2SeqLM.from_pretrained(model_path)
+        configure_hf_offline()
+        kwargs = hf_from_pretrained_kwargs()
+        self.tokenizer  = AutoTokenizer.from_pretrained(model_path, **kwargs)
+        self.model      = AutoModelForSeq2SeqLM.from_pretrained(model_path, **kwargs)
         self.model.eval()
         self.model.to(self.device)
 

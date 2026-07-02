@@ -18,7 +18,7 @@ and can be swapped in by setting method="textrank" in get_evidence().
 from pathlib import Path
 import sys
 import logging
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 import nltk
@@ -28,14 +28,14 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-import torch
 
 sys.path.append(str(Path(__file__).parent.parent))
 from config import (
     EMBED_MODEL, RETRIEVAL_K,
     BM25_WEIGHT, EMBED_WEIGHT,
-    TOKEN_BUDGET, BART_MAX_INPUT,
+    TOKEN_BUDGET,
 )
+from utils.hf_local import configure_hf_offline, hf_from_pretrained_kwargs
 
 log = logging.getLogger(__name__)
 
@@ -75,7 +75,9 @@ class EvidenceRetriever:
     def embed_model(self) -> SentenceTransformer:
         if self._embed_model is None:
             log.info("Loading sentence-transformer: %s", self._embed_model_name)
-            self._embed_model = SentenceTransformer(self._embed_model_name)
+            configure_hf_offline()
+            kwargs = hf_from_pretrained_kwargs()
+            self._embed_model = SentenceTransformer(self._embed_model_name, **kwargs)
         return self._embed_model
 
     # ── BM25 scoring ──────────────────────────────────────────────────────────

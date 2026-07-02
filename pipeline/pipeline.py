@@ -33,12 +33,14 @@ from config import (
     FCS_THRESHOLD,
     USE_SELF_TRAINED_BART,
     USE_SELF_TRAINED_MBART,
+    SAFETY_SWITCH_DEFAULT_MODE,
 )
 
 from pipeline.retrieval import EvidenceRetriever
 from pipeline.generator import Generator
 from pipeline.verifier  import EvidenceVerifier
 from pipeline.reranker  import PreferenceReranker
+from pipeline.difficulty import DifficultyAwareSafetySwitch
 
 log = logging.getLogger(__name__)
 
@@ -65,9 +67,14 @@ class SummarizationPipeline:
         n_candidates: int   = NUM_CANDIDATES,
         retrieval_k: int    = RETRIEVAL_K,
         fcs_threshold: float = FCS_THRESHOLD,
+        safety_mode: str = SAFETY_SWITCH_DEFAULT_MODE,
         device: Optional[str] = None,
     ):
+        if safety_mode not in {"fixed", "dynamic"}:
+            raise ValueError("safety_mode must be 'fixed' or 'dynamic'")
+
         self.retrieval_method = retrieval_method
+        self.safety_mode = safety_mode
         log.info("Initialising SummarizationPipeline …")
 
         if use_finetuned is None:
@@ -82,9 +89,10 @@ class SummarizationPipeline:
         )
         self.verifier  = EvidenceVerifier(fcs_threshold=fcs_threshold)
         self.reranker  = PreferenceReranker(fcs_threshold=fcs_threshold)
+        self.safety_switch = DifficultyAwareSafetySwitch(base_threshold=fcs_threshold)
 
-        log.info("Pipeline ready. model=%s finetuned=%s retrieval=%s n=%d",
-                 model_key, use_finetuned, retrieval_method, n_candidates)
+        log.info("Pipeline ready. model=%s finetuned=%s retrieval=%s n=%d safety=%s",
+             model_key, use_finetuned, retrieval_method, n_candidates, safety_mode)
 
     def summarise(self, article: str) -> Dict:
         """
@@ -104,6 +112,10 @@ class SummarizationPipeline:
               "evidence_pool"   : list   — all sentences with scores
               "evidence_trace"  : list   — sentence-level verification trace
               "n_candidates"    : int    — number of candidates generated
+                            "threshold_used"  : float  — threshold used for fallback decision
+                            "difficulty_score": float  — article difficulty in [0,1]
+                            "difficulty_signals": dict — normalized component signals
+                            "safety_mode"     : str    — fixed | dynamic
               "latency_s"       : float  — total wall-clock seconds
             }
         """
@@ -123,6 +135,10 @@ class SummarizationPipeline:
                 "bertscore": 0.0, "final_score": 0.0,
                 "selected_context": "", "evidence_pool": [],
                 "evidence_trace": [], "n_candidates": 0,
+                "threshold_used": self.verifier.fcs_threshold,
+                "difficulty_score": 0.0,
+                "difficulty_signals": {},
+                "safety_mode": self.safety_mode,
                 "latency_s": time.time() - t0,
             }
 
@@ -132,8 +148,24 @@ class SummarizationPipeline:
         # ── Stage 3: Verification ─────────────────────────────────────────────
         verifications = self.verifier.verify_all(candidates, evidence_pool)
 
+        # ── Difficulty-aware thresholding ─────────────────────────────────────
+        difficulty_details = self.safety_switch.analyze(article, evidence_pool)
+        if self.safety_mode == "dynamic":
+            threshold_used = self.safety_switch.dynamic_threshold(
+                difficulty_details["difficulty"]
+            )
+        else:
+            threshold_used = self.verifier.fcs_threshold
+
         # ── Stage 4: Reranking + fallback ─────────────────────────────────────
-        result = self.reranker.rank(candidates, verifications, selected_context)
+        result = self.reranker.rank(
+            candidates,
+            verifications,
+            selected_context,
+            fcs_threshold=threshold_used,
+            safety_mode=self.safety_mode,
+            difficulty_details=difficulty_details,
+        )
 
         latency = round(time.time() - t0, 2)
 
@@ -147,6 +179,10 @@ class SummarizationPipeline:
             "evidence_pool":    evidence_pool,
             "evidence_trace":   result["evidence_trace"],
             "n_candidates":     len(candidates),
+            "threshold_used":   result.get("threshold_used", threshold_used),
+            "difficulty_score": difficulty_details["difficulty"],
+            "difficulty_signals": difficulty_details["components"],
+            "safety_mode":      result.get("safety_mode", self.safety_mode),
             "latency_s":        latency,
         }
 

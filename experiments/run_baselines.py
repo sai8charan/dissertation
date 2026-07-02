@@ -28,7 +28,7 @@ from config import RESULTS_DIR, BART_CKPT, USE_SELF_TRAINED_BART
 log = logging.getLogger(__name__)
 
 
-def run_all_baselines(max_samples: int = 500, compute_fcs: bool = True):
+def run_all_baselines(max_samples: int = 100, compute_fcs: bool = True):
     from baselines.lead3 import Lead3Summarizer
     from baselines.textrank import TextRankSummarizer
     from baselines.bart_baseline import BartBaseline
@@ -71,7 +71,7 @@ def run_all_baselines(max_samples: int = 500, compute_fcs: bool = True):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max_samples", type=int, default=500)
+    parser.add_argument("--max_samples", type=int, default=100)
     parser.add_argument("--no_fcs", action="store_true")
     args = parser.parse_args()
     run_all_baselines(max_samples=args.max_samples, compute_fcs=not args.no_fcs)

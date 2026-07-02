@@ -59,9 +59,9 @@ st.markdown("""
 
 # ── Model loading (cached so it only runs once) ───────────────────────────────
 @st.cache_resource(show_spinner="Loading models … (first run only)")
-def load_pipeline():
+def load_pipeline(safety_mode: str = "dynamic"):
     from pipeline.pipeline import SummarizationPipeline
-    return SummarizationPipeline(model_key="bart")
+    return SummarizationPipeline(model_key="bart", safety_mode=safety_mode)
 
 @st.cache_resource(show_spinner=False)
 def load_lead3():
@@ -81,15 +81,6 @@ def load_bart_baseline():
 
 
 # ── Helper functions ──────────────────────────────────────────────────────────
-
-def fcs_colour(fcs: float) -> str:
-    if fcs >= 0.65:
-        return "fcs-high"
-    elif fcs >= 0.40:
-        return "fcs-mid"
-    return "fcs-low"
-
-
 def render_evidence_trace(trace: list):
     """Render sentence-level evidence trace with colour coding."""
     if not trace:
@@ -101,8 +92,12 @@ def render_evidence_trace(trace: list):
 
     for t in trace:
         prob    = t["entail_prob"]
-        css_cls = "evidence-high" if prob >= 0.65 else (
-                  "evidence-mid"  if prob >= 0.40 else "evidence-low")
+        if prob >= 0.65:
+            css_cls = "evidence-high"
+        elif prob >= 0.40:
+            css_cls = "evidence-mid"
+        else:
+            css_cls = "evidence-low"
         st.markdown(
             f'<span class="{css_cls}"><b>[{prob:.2f}]</b> {t["summary_sent"]}</span>',
             unsafe_allow_html=True,
@@ -131,6 +126,7 @@ with st.sidebar:
     show_baseline   = st.checkbox("Show baseline comparison", value=True)
     show_trace      = st.checkbox("Show evidence trace", value=True)
     show_pool       = st.checkbox("Show retrieved evidence", value=False)
+    dynamic_switch  = st.toggle("Difficulty-aware safety switch", value=True)
     st.markdown("---")
     st.markdown("### About")
     st.markdown(
@@ -145,7 +141,7 @@ with st.sidebar:
         "1. 🔍 Evidence retrieval (BM25 + embeddings)  \n"
         "2. 🤖 Abstractive generation (BART, Best-of-N)  \n"
         "3. ✅ Evidence verification (NLI)  \n"
-        "4. 🏆 Preference reranking + fallback"
+        "4. 🏆 Difficulty-aware reranking + fallback"
     )
 
 
@@ -204,7 +200,8 @@ if run_btn:
         st.warning("Please paste a longer article (at least 50 characters).")
         st.stop()
 
-    pipeline = load_pipeline()
+    safety_mode = "dynamic" if dynamic_switch else "fixed"
+    pipeline = load_pipeline(safety_mode=safety_mode)
 
     with st.spinner("Running pipeline …"):
         t0     = time.time()
@@ -216,13 +213,20 @@ if run_btn:
     st.markdown("## 📄 Pipeline output")
 
     # Metric row
-    m1, m2, m3, m4 = st.columns(4)
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
     fcs_val  = result["fcs"]
     bs_val   = result["bertscore"]
+    if fcs_val >= 0.65:
+        fcs_color = "#1a7a3a"
+    elif fcs_val >= 0.4:
+        fcs_color = "#b38000"
+    else:
+        fcs_color = "#c0392b"
+
     with m1:
         st.markdown(
             f'<div class="metric-box"><div style="font-size:1.4em;font-weight:600;'
-            f'color:{"#1a7a3a" if fcs_val>=0.65 else "#b38000" if fcs_val>=0.4 else "#c0392b"}">'
+            f'color:{fcs_color}">'
             f'{fcs_val:.3f}</div><div style="font-size:0.8em;color:#666">Factual Consistency (FCS)</div></div>',
             unsafe_allow_html=True,
         )
@@ -249,6 +253,33 @@ if run_btn:
             f'{elapsed}s</div><div style="font-size:0.8em;color:#666">Latency</div></div>',
             unsafe_allow_html=True,
         )
+    with m5:
+        st.markdown(
+            f'<div class="metric-box"><div style="font-size:1.4em;font-weight:600">'
+            f'{result.get("threshold_used", 0.0):.3f}</div>'
+            f'<div style="font-size:0.8em;color:#666">Threshold Used</div></div>',
+            unsafe_allow_html=True,
+        )
+    with m6:
+        st.markdown(
+            f'<div class="metric-box"><div style="font-size:1.4em;font-weight:600">'
+            f'{result.get("difficulty_score", 0.0):.3f}</div>'
+            f'<div style="font-size:0.8em;color:#666">Difficulty Score</div></div>',
+            unsafe_allow_html=True,
+        )
+
+    st.caption(f"Safety mode: {result.get('safety_mode', safety_mode)}")
+
+    difficulty_signals = result.get("difficulty_signals", {})
+    if difficulty_signals:
+        st.markdown("### Difficulty signals")
+        d1, d2, d3 = st.columns(3)
+        with d1:
+            st.progress(float(difficulty_signals.get("length_norm", 0.0)), text=f"Length: {difficulty_signals.get('length_norm', 0.0):.2f}")
+        with d2:
+            st.progress(float(difficulty_signals.get("entity_norm", 0.0)), text=f"Entity density: {difficulty_signals.get('entity_norm', 0.0):.2f}")
+        with d3:
+            st.progress(float(difficulty_signals.get("uncertainty_norm", 0.0)), text=f"Retrieval uncertainty: {difficulty_signals.get('uncertainty_norm', 0.0):.2f}")
 
     st.markdown("### Summary")
     st.success(result["summary"])
@@ -289,6 +320,10 @@ if run_btn:
         "fallback":        result["fallback"],
         "fcs":             result["fcs"],
         "bertscore":       result["bertscore"],
+        "threshold_used":  result.get("threshold_used"),
+        "difficulty_score": result.get("difficulty_score"),
+        "difficulty_signals": result.get("difficulty_signals", {}),
+        "safety_mode": result.get("safety_mode", safety_mode),
         "evidence_trace":  result.get("evidence_trace", []),
     }
     st.download_button(

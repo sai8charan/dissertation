@@ -16,20 +16,29 @@ from pathlib import Path
 
 import numpy as np
 from datasets import load_dataset, DatasetDict
-import nltk
-nltk.download("punkt", quiet=True)
-from nltk.tokenize import sent_tokenize
 
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 from config import (
     DATASET_NAME, DATASET_VERSION, ARTICLE_COL, SUMMARY_COL,
     DATA_DIR, SEED, MAX_TRAIN_SAMPLES,
-    TRAIN_SPLIT, VAL_SPLIT,
 )
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
+
+
+def _ensure_nltk_punkt() -> None:
+    """Download punkt only if it is not already available locally."""
+    import nltk
+
+    try:
+        nltk.data.find("tokenizers/punkt")
+        return
+    except LookupError:
+        pass
+
+    nltk.download("punkt", quiet=True)
 
 
 # ── Text cleaning ─────────────────────────────────────────────────────────────
@@ -48,6 +57,8 @@ def clean_text(text: str) -> str:
 
 def preprocess_example(example: dict) -> dict:
     """Clean article and summary; add sentence count."""
+    from nltk.tokenize import sent_tokenize
+
     article  = clean_text(example[ARTICLE_COL])
     summary  = clean_text(example[SUMMARY_COL])
     # Replace newline-separated highlights with a single paragraph
@@ -97,13 +108,22 @@ def get_datasets(force_reprocess: bool = False) -> DatasetDict:
     cache_path = DATA_DIR / "cnn_dm_processed"
 
     if cache_path.exists() and not force_reprocess:
-        log.info("Loading cached dataset from %s", cache_path)
+        log.info("Loading processed dataset from local cache: %s", cache_path)
         from datasets import load_from_disk
-        return load_from_disk(str(cache_path))
+        try:
+            return load_from_disk(str(cache_path))
+        except Exception as exc:
+            log.warning("Cached processed dataset is unreadable (%s). Reprocessing.", exc)
 
-    log.info("Downloading %s v%s …", DATASET_NAME, DATASET_VERSION)
-    raw = load_dataset(DATASET_NAME, DATASET_VERSION)
+    log.info("Processed cache missing or reprocess requested. Loading raw dataset…")
+    # Prefer local HF cache when available; download only if missing.
+    raw = load_dataset(
+        DATASET_NAME,
+        DATASET_VERSION,
+        download_mode="reuse_dataset_if_exists",
+    )
 
+    _ensure_nltk_punkt()
     log.info("Cleaning and tokenising sentences …")
     processed = raw.map(
         preprocess_example,

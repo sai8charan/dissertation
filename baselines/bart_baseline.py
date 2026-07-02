@@ -23,6 +23,7 @@ from config import (
     USE_SELF_TRAINED_BART,
     NUM_BEAMS,
 )
+from utils.hf_local import configure_hf_offline, hf_from_pretrained_kwargs
 
 log = logging.getLogger(__name__)
 
@@ -66,8 +67,10 @@ class BartBaseline:
             self.name = "BART-zero-shot"
 
         log.info("Loading %s from %s …", self.name, model_path)
-        self.tokenizer = BartTokenizer.from_pretrained(model_path)
-        self.model     = BartForConditionalGeneration.from_pretrained(model_path)
+        configure_hf_offline()
+        kwargs = hf_from_pretrained_kwargs()
+        self.tokenizer = BartTokenizer.from_pretrained(model_path, **kwargs)
+        self.model     = BartForConditionalGeneration.from_pretrained(model_path, **kwargs)
         self.model.eval()
         self.model.to(self.device)
 

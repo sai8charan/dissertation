@@ -36,7 +36,7 @@ log = logging.getLogger(__name__)
 
 # ── Ablation A: Retrieval method ──────────────────────────────────────────────
 
-def ablation_retrieval_method(max_samples: int = 300):
+def ablation_retrieval_method(max_samples: int = 100):
     from pipeline.pipeline import SummarizationPipeline
 
     methods = ["textrank", "bm25", "embedding", "hybrid"]
@@ -66,7 +66,7 @@ def ablation_retrieval_method(max_samples: int = 300):
 
 # ── Ablation B: Best-of-N candidate count ─────────────────────────────────────
 
-def ablation_n_candidates(max_samples: int = 300):
+def ablation_n_candidates(max_samples: int = 100):
     from pipeline.pipeline import SummarizationPipeline
 
     n_values = [1, 2, 3, 5, 8]
@@ -96,7 +96,7 @@ def ablation_n_candidates(max_samples: int = 300):
 
 # ── Ablation C: Verifier + fallback on vs off ─────────────────────────────────
 
-def ablation_verifier_onoff(max_samples: int = 300):
+def ablation_verifier_onoff(max_samples: int = 100):
     from pipeline.pipeline import SummarizationPipeline
     from pipeline.generator import Generator
 
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser()
     parser.add_argument("--ablation",   choices=["A", "B", "C", "all"], default="all")
-    parser.add_argument("--max_samples", type=int, default=300)
+    parser.add_argument("--max_samples", type=int, default=100)
     args = parser.parse_args()
 
     if args.ablation in ("A", "all"):

@@ -3,7 +3,7 @@
 **Dissertation — M.Tech AIML, BITS Pilani WILP (2024AA05606)**
 
 > Extraction-Guided Abstractive Generation with Evidence Retrieval,
-> NLI-based Factual Verification, and Preference Reranking.
+> NLI-based Factual Verification, and a Difficulty-Aware Safety Switch.
 
 ---
 
@@ -30,7 +30,8 @@ dissertation/
 │   ├── retrieval.py                 # Stage 1: hybrid BM25 + embedding retrieval
 │   ├── generator.py                 # Stage 2: Best-of-N nucleus sampling
 │   ├── verifier.py                  # Stage 3: NLI factual consistency scoring
-│   ├── reranker.py                  # Stage 4: preference reranking + fallback
+│   ├── difficulty.py                # Difficulty score + dynamic threshold
+│   ├── reranker.py                  # Stage 4: reranking + fixed/dynamic fallback
 │   └── pipeline.py                  # Full pipeline wrapper
 │
 ├── evaluation/
@@ -92,10 +93,12 @@ Downloads CNN/DailyMail 3.0.0, cleans it, and prints corpus statistics
 ### Step 2 — Evaluate baselines (no training needed for Lead-3 and TextRank)
 
 ```bash
-python experiments/run_baselines.py --max_samples 200 --no_fcs
+python experiments/run_baselines.py --max_samples 100 --no_fcs
 ```
 `--no_fcs` skips the slow NLI-FCS computation during early development.
 Results saved to `results/baselines_table.csv`.
+When `max_samples` is used, evaluation now selects a difficulty-stratified subset
+to preserve easy/medium/hard article coverage instead of taking the first N rows.
 
 By default (`USE_SELF_TRAINED_BART = False`), the run includes:
 - `BART-zero-shot` (facebook/bart-large)
@@ -132,7 +135,12 @@ mBART runtime behavior is config-driven:
 ### Step 5 — Full pipeline evaluation
 
 ```bash
-python experiments/run_pipeline.py --max_samples 500
+# Dynamic threshold mode (recommended)
+python experiments/run_pipeline.py --max_samples 100 --safety_mode dynamic
+
+# Fixed threshold baseline mode
+python experiments/run_pipeline.py --max_samples 100 --safety_mode fixed
+
 python evaluation/check_targets.py
 ```
 Compares proposed pipeline vs all baselines + direct PEGASUS + mBART.
@@ -142,7 +150,7 @@ Use `--check_targets` on `run_pipeline.py` to evaluate and check objectives in o
 ### Step 6 — Ablation studies
 
 ```bash
-python experiments/run_ablations.py --ablation all --max_samples 300
+python experiments/run_ablations.py --ablation all --max_samples 100
 ```
 Runs ablations A (retrieval method), B (Best-of-N), C (verifier on/off).
 
@@ -190,8 +198,40 @@ Opens at http://localhost:8501
 | `NUM_CANDIDATES` | `5` | Best-of-N candidates generated per article |
 | `RETRIEVAL_K` | `8` | Max sentences selected by retriever |
 | `FCS_THRESHOLD` | `0.40` | Below this → extractive fallback |
+| `SAFETY_SWITCH_DEFAULT_MODE` | `dynamic` | Default fallback policy (`fixed` or `dynamic`) |
+| `DIFFICULTY_ALPHA` | `0.20` | Difficulty-to-threshold scaling factor |
+| `DIFFICULTY_MAX_THRESHOLD` | `0.60` | Max cap for dynamic threshold |
 | `FCS_WEIGHT` | `0.60` | Reranker weight for factual consistency |
 | `BERTSCORE_WEIGHT` | `0.40` | Reranker weight for fluency |
+
+---
+
+## Difficulty-Aware Safety Switch
+
+The pipeline supports two fallback modes:
+
+- `fixed`: Uses the static threshold `FCS_THRESHOLD`.
+- `dynamic`: Uses per-article threshold from a difficulty score.
+
+Dynamic threshold formula:
+
+`Threshold_dynamic = BaseThreshold + alpha * D`
+
+Where `D` is derived from three normalized signals:
+
+- Length complexity
+- Entity density
+- Retrieval uncertainty
+
+UI support:
+
+- The Streamlit app (`app/app.py`) has a sidebar toggle: **Difficulty-aware safety switch**.
+- App output shows threshold used, difficulty score, and signal components.
+
+Evaluation support:
+
+- `evaluation/eval_metrics.py` now logs `threshold_used`, `difficulty_score`, and `safety_mode` in prediction artifacts.
+- Aggregate outputs include `mean_threshold`, `mean_difficulty`, and `dynamic_mode_share`.
 
 ---
 

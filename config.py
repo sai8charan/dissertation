@@ -28,6 +28,9 @@ TEST_SPLIT      = 0.15
 MAX_TRAIN_SAMPLES = 20_000   # Updated dissertation default
 
 # ── Models ────────────────────────────────────────────────────────────────────
+# If True, model loading is cache-only (no network downloads).
+MODEL_LOCAL_FILES_ONLY     = True
+
 BART_ZERO_SHOT_MODEL      = "facebook/bart-large"
 BART_FINETUNE_BASE_MODEL  = "facebook/bart-large-cnn"  # set to "facebook/bart-large" to self-train from bart-large
 BART_MODEL                = BART_FINETUNE_BASE_MODEL    # backward-compatible alias
@@ -80,6 +83,24 @@ NUM_BEAMS          = 1       # 1 = sampling; >1 = beam (switch for ablation)
 NLI_BATCH_SIZE     = 32
 ENTAILMENT_LABEL   = "entailment"   # DeBERTa label string
 FCS_THRESHOLD      = 0.40   # below this → extractive fallback
+
+# ── Difficulty-aware safety switch ───────────────────────────────────────────
+# Mode can be "fixed" (legacy behavior) or "dynamic" (difficulty-aware).
+SAFETY_SWITCH_DEFAULT_MODE = "dynamic"
+DIFFICULTY_BASE_THRESHOLD  = FCS_THRESHOLD
+DIFFICULTY_ALPHA           = 0.20
+DIFFICULTY_MAX_THRESHOLD   = 0.60
+
+# Difficulty score weights (must sum to 1.0).
+DIFF_WEIGHT_LENGTH         = 0.40
+DIFF_WEIGHT_ENTITY         = 0.30
+DIFF_WEIGHT_UNCERTAINTY    = 0.30
+
+# Normalization ranges for difficulty signals.
+DIFF_LENGTH_MIN_WORDS      = 150
+DIFF_LENGTH_MAX_WORDS      = 900
+DIFF_ENTITY_MIN_PER_100W   = 2.0
+DIFF_ENTITY_MAX_PER_100W   = 18.0
 
 # ── Reranking ─────────────────────────────────────────────────────────────────
 FCS_WEIGHT         = 0.60

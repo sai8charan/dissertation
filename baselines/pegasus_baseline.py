@@ -25,6 +25,7 @@ from config import (
     PEGASUS_MAX_INPUT,
     PEGASUS_MAX_OUTPUT,
 )
+from utils.hf_local import configure_hf_offline, hf_from_pretrained_kwargs
 
 log = logging.getLogger(__name__)
 
@@ -49,8 +50,10 @@ class PegasusBaseline:
 
         model_path = PEGASUS_MODEL
         log.info("Loading %s from %s ...", self.name, model_path)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-        self.model = AutoModelForSeq2SeqLM.from_pretrained(model_path)
+        configure_hf_offline()
+        kwargs = hf_from_pretrained_kwargs()
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path, **kwargs)
+        self.model = AutoModelForSeq2SeqLM.from_pretrained(model_path, **kwargs)
         self.model.eval()
         self.model.to(self.device)
 

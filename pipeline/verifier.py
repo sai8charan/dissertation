@@ -39,6 +39,7 @@ from sentence_transformers import CrossEncoder
 
 sys.path.append(str(Path(__file__).parent.parent))
 from config import NLI_MODEL, NLI_BATCH_SIZE, FCS_THRESHOLD
+from utils.hf_local import configure_hf_offline, hf_from_pretrained_kwargs
 
 log = logging.getLogger(__name__)
 
@@ -69,7 +70,9 @@ class EvidenceVerifier:
         self.batch_size    = batch_size
         self.fcs_threshold = fcs_threshold
         log.info("Loading NLI model: %s", model_name)
-        self.model = CrossEncoder(model_name, max_length=512)
+        configure_hf_offline()
+        kwargs = hf_from_pretrained_kwargs()
+        self.model = CrossEncoder(model_name, max_length=512, **kwargs)
         self.name  = "NLI-DeBERTa"
 
     # ── Core scoring ──────────────────────────────────────────────────────────
