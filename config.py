@@ -22,9 +22,6 @@ DATASET_NAME    = "abisee/cnn_dailymail"
 DATASET_VERSION = "3.0.0"
 ARTICLE_COL     = "article"
 SUMMARY_COL     = "highlights"
-TRAIN_SPLIT     = 0.70
-VAL_SPLIT       = 0.15
-TEST_SPLIT      = 0.15
 MAX_TRAIN_SAMPLES = 20_000   # Updated dissertation default
 
 # ── Models ────────────────────────────────────────────────────────────────────

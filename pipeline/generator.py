@@ -31,7 +31,6 @@ from config import (
     BART_MAX_INPUT, BART_MAX_OUTPUT,
     NUM_CANDIDATES, TOP_P, TEMPERATURE,
     USE_SELF_TRAINED_BART, USE_SELF_TRAINED_MBART,
-    BART_TRAIN_MODEL,
 )
 from utils.hf_local import configure_hf_offline, hf_from_pretrained_kwargs
 

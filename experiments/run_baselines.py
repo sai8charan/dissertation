@@ -22,7 +22,7 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.append(str(Path(__file__).parent.parent))
-from evaluation.eval_metrics import evaluate_system, load_all_results
+from evaluation.eval_metrics import evaluate_system
 from config import RESULTS_DIR, BART_CKPT, USE_SELF_TRAINED_BART
 
 log = logging.getLogger(__name__)

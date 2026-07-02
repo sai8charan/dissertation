@@ -299,18 +299,6 @@ def evaluate_system(
     return metrics
 
 
-def load_all_results() -> pd.DataFrame:
-    """Collect all saved eval_*.json files into a comparison DataFrame."""
-    rows = []
-    for f in RESULTS_DIR.glob("eval_*.json"):
-        with open(f) as fp:
-            rows.append(json.load(fp))
-    if not rows:
-        return pd.DataFrame()
-    df = pd.DataFrame(rows).set_index("system")
-    return df
-
-
 # ── CLI ───────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

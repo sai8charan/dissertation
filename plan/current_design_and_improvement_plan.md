@@ -128,5 +128,5 @@ def retry_on_exception(retries=3, delay=2):
 Ensure Google Colab notebooks automatically save checkpoints to Google Drive after each epoch, not just at the end.
 
 - **Mechanism**:
-  - Implement a custom `TrainerCallback` inside `googlecolab/generate_notebooks.py` that copies the latest checkpoint directory to the mounted `/content/drive/MyDrive/` at the end of every epoch.
+  - Implement a custom `TrainerCallback` inside the fine-tuning notebooks (`googlecolab/finetune_bart.ipynb` and `googlecolab/finetune_mbart.ipynb`) that copies the latest checkpoint directory to the mounted `/content/drive/MyDrive/` at the end of every epoch.
   - This prevents loss of progress if Colab terminates the session due to inactivity or timeout.
