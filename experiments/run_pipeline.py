@@ -8,6 +8,12 @@ model-justification section of the dissertation.
 Run:
     python experiments/run_pipeline.py --max_samples 500
 
+    # Re-run only the pipeline (e.g. after an interruption):
+    python experiments/run_pipeline.py --max_samples 300 --systems pipeline
+
+    # Re-run pipeline + PEGASUS only:
+    python experiments/run_pipeline.py --max_samples 300 --systems pipeline pegasus
+
 Output:
     results/full_comparison_table.csv   — all systems side-by-side
 """
@@ -26,7 +32,11 @@ from config import RESULTS_DIR, BART_CKPT, USE_SELF_TRAINED_BART, USE_SELF_TRAIN
 log = logging.getLogger(__name__)
 
 
-def run_full_comparison(max_samples: int = 500, compute_fcs: bool = True):
+def run_full_comparison(
+    max_samples: int = 500,
+    compute_fcs: bool = True,
+    only_systems: list = None,
+):
 
     from baselines.lead3 import Lead3Summarizer
     from baselines.textrank import TextRankSummarizer
@@ -56,8 +66,6 @@ def run_full_comparison(max_samples: int = 500, compute_fcs: bool = True):
     )
 
     # ── PEGASUS comparison ────────────────────────────────────────────────────
-    # google/pegasus-cnn_dailymail is already CNN/DailyMail-tuned, so we
-    # evaluate it directly instead of fine-tuning it again in this project.
     systems["PEGASUS-pretrained"] = PegasusBaseline()
 
     # ── mBART comparison ──────────────────────────────────────────────────────
@@ -69,6 +77,20 @@ def run_full_comparison(max_samples: int = 500, compute_fcs: bool = True):
         return {"summary": summary, "fallback": False}
 
     systems["mBART-pretrained" if not USE_SELF_TRAINED_MBART else "mBART-fine-tuned"] = mbart_summarise
+
+    # ── Filter to requested systems ───────────────────────────────────────────
+    _ALIASES = {
+        "pipeline": "Pipeline (hybrid+verify+rerank)",
+        "pegasus":  "PEGASUS-pretrained",
+        "mbart":    "mBART-pretrained",
+        "bart":     "BART-zero-shot",
+        "lead3":    "Lead-3",
+        "textrank": "TextRank",
+    }
+    if only_systems:
+        resolved = {_ALIASES.get(s, s) for s in only_systems}
+        systems = {k: v for k, v in systems.items() if k in resolved}
+        log.info("Running only: %s", list(systems.keys()))
 
     # ── Evaluate all ──────────────────────────────────────────────────────────
     all_metrics = []
@@ -95,8 +117,16 @@ def run_full_comparison(max_samples: int = 500, compute_fcs: bool = True):
     return df
 
 
-def run_with_target_check(max_samples: int = 500, compute_fcs: bool = True):
-    df = run_full_comparison(max_samples=max_samples, compute_fcs=compute_fcs)
+def run_with_target_check(
+    max_samples: int = 500,
+    compute_fcs: bool = True,
+    only_systems: list = None,
+):
+    df = run_full_comparison(
+        max_samples=max_samples,
+        compute_fcs=compute_fcs,
+        only_systems=only_systems,
+    )
     from evaluation.check_targets import main as check_main
     check_main(RESULTS_DIR / "full_comparison_table.csv")
     return df
@@ -112,14 +142,26 @@ if __name__ == "__main__":
         action="store_true",
         help="After evaluation, compare metrics against EXPECTED_TARGETS",
     )
+    parser.add_argument(
+        "--systems",
+        nargs="+",
+        default=None,
+        metavar="SYS",
+        help=(
+            "Run only these systems. Choices: pipeline, pegasus, mbart, "
+            "bart, lead3, textrank. E.g. --systems pipeline pegasus"
+        ),
+    )
     args = parser.parse_args()
     if args.check_targets:
         run_with_target_check(
             max_samples=args.max_samples,
             compute_fcs=not args.no_fcs,
+            only_systems=args.systems,
         )
     else:
         run_full_comparison(
             max_samples=args.max_samples,
             compute_fcs=not args.no_fcs,
+            only_systems=args.systems,
         )

@@ -1,12 +1,13 @@
 {
   "system": "TextRank",
-  "n_samples": 200,
-  "rouge1": 20.73,
-  "rouge2": 8.32,
-  "rougeL": 14.26,
-  "bertscore_f1": 85.48,
+  "n_samples": 300,
+  "rouge1": 20.74,
+  "rouge2": 8.34,
+  "rougeL": 14.21,
+  "bertscore_f1": 85.51,
   "fallback_rate": 0.0,
   "mean_latency_s": 0.0,
-  "nli_fcs": null,
-  "hallucination_rate": null
+  "nli_fcs": 0.9997,
+  "nli_fcs_pct": 99.97,
+  "hallucination_rate": 0.0
 }

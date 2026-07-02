@@ -1,12 +1,13 @@
 {
   "system": "BART-zero-shot",
-  "n_samples": 1,
-  "rouge1": 34.29,
-  "rouge2": 18.84,
-  "rougeL": 25.71,
-  "bertscore_f1": 88.45,
+  "n_samples": 300,
+  "rouge1": 27.22,
+  "rouge2": 10.71,
+  "rougeL": 18.49,
+  "bertscore_f1": 86.07,
   "fallback_rate": 0.0,
   "mean_latency_s": 0.0,
-  "nli_fcs": null,
-  "hallucination_rate": null
+  "nli_fcs": 0.9997,
+  "nli_fcs_pct": 99.97,
+  "hallucination_rate": 0.0
 }

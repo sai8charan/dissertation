@@ -24,7 +24,7 @@ import logging
 from typing import List, Dict, Optional
 
 import numpy as np
-from bert_score import score as bert_score
+from bert_score import BERTScorer
 
 sys.path.append(str(Path(__file__).parent.parent))
 from config import (
@@ -64,6 +64,10 @@ class PreferenceReranker:
         self.bertscore_weight = bertscore_weight
         self.fcs_threshold    = fcs_threshold
         self.bertscore_lang   = bertscore_lang
+        # Load roberta-large once at construction time; reused for every article
+        # so we never re-download or re-initialise weights during evaluation.
+        log.info("Loading BERTScorer (roberta-large) — loaded once, cached for all articles …")
+        self._scorer = BERTScorer(lang=bertscore_lang, rescale_with_baseline=False)
 
     # ── BERTScore computation ─────────────────────────────────────────────────
 
@@ -83,11 +87,7 @@ class PreferenceReranker:
             list of N F1 scores ∈ [0, 1]
         """
         references = [reference] * len(candidates)
-        _, _, F1   = bert_score(
-            candidates, references,
-            lang=self.bertscore_lang,
-            verbose=False,
-        )
+        _, _, F1   = self._scorer.score(candidates, references)
         return F1.tolist()
 
     # ── Ranking ───────────────────────────────────────────────────────────────

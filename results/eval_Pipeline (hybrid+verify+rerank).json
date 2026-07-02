@@ -1,12 +1,13 @@
 {
   "system": "Pipeline (hybrid+verify+rerank)",
-  "n_samples": 1,
-  "rouge1": 36.59,
-  "rouge2": 17.5,
-  "rougeL": 29.27,
-  "bertscore_f1": 88.15,
+  "n_samples": 300,
+  "rouge1": 30.72,
+  "rouge2": 10.1,
+  "rougeL": 20.55,
+  "bertscore_f1": 87.0,
   "fallback_rate": 0.0,
-  "mean_latency_s": 155.88,
-  "nli_fcs": null,
-  "hallucination_rate": null
+  "mean_latency_s": 34.535,
+  "nli_fcs": 0.9997,
+  "nli_fcs_pct": 99.97,
+  "hallucination_rate": 0.0
 }

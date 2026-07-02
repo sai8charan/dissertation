@@ -1,12 +1,13 @@
 {
   "system": "PEGASUS-pretrained",
-  "n_samples": 1,
-  "rouge1": 43.33,
-  "rouge2": 24.14,
-  "rougeL": 30.0,
-  "bertscore_f1": 89.51,
+  "n_samples": 300,
+  "rouge1": 35.34,
+  "rouge2": 14.74,
+  "rougeL": 25.74,
+  "bertscore_f1": 87.38,
   "fallback_rate": 0.0,
   "mean_latency_s": 0.0,
-  "nli_fcs": null,
-  "hallucination_rate": null
+  "nli_fcs": 0.9997,
+  "nli_fcs_pct": 99.97,
+  "hallucination_rate": 0.0
 }
