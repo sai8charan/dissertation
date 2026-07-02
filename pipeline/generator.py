@@ -40,7 +40,7 @@ log = logging.getLogger(__name__)
 _REGISTRY = {
     "bart": {
         "pretrained": BART_FINETUNE_BASE_MODEL,
-        "source":     BART_TRAIN_MODEL,
+        "source":     BART_FINETUNE_BASE_MODEL,
         "finetuned":  str(BART_CKPT),
         "use_self_trained": USE_SELF_TRAINED_BART,
         "max_input":  BART_MAX_INPUT,

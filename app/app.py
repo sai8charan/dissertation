@@ -71,7 +71,13 @@ def load_lead3():
 @st.cache_resource(show_spinner=False)
 def load_bart_baseline():
     from baselines.bart_baseline import BartBaseline
-    return BartBaseline(mode="finetuned")
+    from config import BART_CKPT, USE_SELF_TRAINED_BART
+    if USE_SELF_TRAINED_BART and BART_CKPT.exists() and any(BART_CKPT.iterdir()):
+        try:
+            return BartBaseline(mode="finetuned"), "BART-fine-tuned"
+        except FileNotFoundError:
+            pass
+    return BartBaseline(mode="zeroshot"), "BART-pretrained (facebook/bart-large-cnn)"
 
 
 # ── Helper functions ──────────────────────────────────────────────────────────
@@ -261,9 +267,7 @@ if run_btn:
         st.markdown("## 📊 Baseline comparison")
 
         lead3 = load_lead3()
-        
-        bart_base = None
-        bart_base = load_bart_baseline()
+        bart_base, bart_label = load_bart_baseline()
 
         with st.spinner("Running baselines …"):
             r_lead3 = lead3(article_text)
@@ -274,7 +278,7 @@ if run_btn:
             st.markdown("**Lead-3 baseline**")
             st.info(r_lead3["summary"])
         with b2:
-            st.markdown("**BART source/fine-tuned baseline**")
+            st.markdown(f"**{bart_label}**")
             st.info(r_bart["summary"])
 
     # ── Download ──────────────────────────────────────────────────────────────

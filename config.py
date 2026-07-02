@@ -44,7 +44,7 @@ USE_SELF_TRAINED_MBART  = False
 
 # Training always starts from this base model; runtime checkpoint usage is controlled
 # independently by USE_SELF_TRAINED_BART / USE_SELF_TRAINED_MBART.
-BART_TRAIN_MODEL        = BART_FINETUNE_BASE_MODEL
+BART_TRAIN_MODEL        = "facebook/bart-large"
 
 # ── Tokeniser limits ──────────────────────────────────────────────────────────
 BART_MAX_INPUT  = 1024   # hard token limit for BART encoder

@@ -37,7 +37,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from config import (
     ARTICLE_COL,
     BART_CKPT,
-    BART_FINETUNE_BASE_MODEL,
+    BART_TRAIN_MODEL,
     BART_MAX_INPUT,
     BART_MAX_OUTPUT,
     EVAL_STEPS,
@@ -64,7 +64,7 @@ log = logging.getLogger(__name__)
 # ── Model registry ────────────────────────────────────────────────────────────
 MODEL_REGISTRY = {
     "bart": {
-        "hf_name": BART_FINETUNE_BASE_MODEL,
+        "hf_name": BART_TRAIN_MODEL,
         "max_in": BART_MAX_INPUT,
         "max_out": BART_MAX_OUTPUT,
         "ckpt": BART_CKPT,

@@ -90,9 +90,12 @@ BART_MAX_OUTPUT    = 128
 PEGASUS_MAX_INPUT  = 512
 PEGASUS_MAX_OUTPUT = 128
 
-BART_MODEL    = "facebook/bart-large-cnn"
-PEGASUS_MODEL = "google/pegasus-cnn_dailymail"  # used directly; no project checkpoint
-MBART_MODEL   = "facebook/mbart-large-cc25"
+BART_ZERO_SHOT_MODEL     = "facebook/bart-large"
+BART_FINETUNE_BASE_MODEL = "facebook/bart-large-cnn"
+BART_TRAIN_MODEL         = "facebook/bart-large"
+BART_MODEL               = BART_FINETUNE_BASE_MODEL
+PEGASUS_MODEL            = "google/pegasus-cnn_dailymail"  # used directly; no project checkpoint
+MBART_MODEL              = "facebook/mbart-large-cc25"
 
 BART_CKPT    = CKPT_DIR / "bart_finetuned"
 MBART_CKPT   = CKPT_DIR / "mbart_finetuned"
@@ -165,7 +168,7 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 MODEL_REGISTRY = {
-    "bart":    {"hf_name": BART_MODEL,    "max_in": BART_MAX_INPUT,    "max_out": BART_MAX_OUTPUT,    "ckpt": BART_CKPT},
+    "bart":    {"hf_name": BART_TRAIN_MODEL,    "max_in": BART_MAX_INPUT,    "max_out": BART_MAX_OUTPUT,    "ckpt": BART_CKPT},
     "mbart":   {"hf_name": MBART_MODEL,   "max_in": BART_MAX_INPUT,    "max_out": BART_MAX_OUTPUT,    "ckpt": MBART_CKPT},
 }
 
@@ -363,9 +366,9 @@ with open(out, "w") as f: json.dump(scores, f, indent=2)
 print("Saved to", out)"""
 
     bart_nb = make_nb(
-        title_md=("# Fine-tuning BART-large-CNN on CNN/DailyMail\\n"
+        title_md=("# Fine-tuning BART-large on CNN/DailyMail\\n"
                   "## M.Tech Dissertation — A Two-Stage Summarisation Pipeline\\n\\n"
-                  "**Model:** `facebook/bart-large-cnn`  \\n"
+                  "**Model:** `facebook/bart-large`  \\n"
                   "**Dataset:** CNN/DailyMail 3.0.0  \\n"
                   "**Training samples:** 50,000 (17% of full set)  \\n"
                   "**GPU required:** T4 15 GB VRAM (free Colab tier)\\n\\n"

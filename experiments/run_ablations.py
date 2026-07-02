@@ -29,7 +29,7 @@ import pandas as pd
 
 sys.path.append(str(Path(__file__).parent.parent))
 from evaluation.eval_metrics import evaluate_system
-from config import RESULTS_DIR
+from config import RESULTS_DIR, USE_SELF_TRAINED_BART
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ def ablation_retrieval_method(max_samples: int = 300):
     for method in methods:
         log.info("Ablation A — retrieval method: %s", method)
         pipe = SummarizationPipeline(
-            use_finetuned=True,
+            use_finetuned=USE_SELF_TRAINED_BART,
             retrieval_method=method,
         )
         m = evaluate_system(
@@ -74,7 +74,7 @@ def ablation_n_candidates(max_samples: int = 300):
     for n in n_values:
         log.info("Ablation B — N candidates: %d", n)
         pipe = SummarizationPipeline(
-            use_finetuned=True,
+            use_finetuned=USE_SELF_TRAINED_BART,
             n_candidates=n,
         )
         m = evaluate_system(
@@ -104,7 +104,7 @@ def ablation_verifier_onoff(max_samples: int = 300):
 
     # WITH verifier + reranker (full pipeline)
     log.info("Ablation C — WITH verifier+reranker")
-    pipe_on = SummarizationPipeline(use_finetuned=True)
+    pipe_on = SummarizationPipeline(use_finetuned=USE_SELF_TRAINED_BART)
     m_on = evaluate_system(
         summarise_fn=pipe_on,
         system_name="pipeline-verifier-ON",
@@ -118,7 +118,7 @@ def ablation_verifier_onoff(max_samples: int = 300):
     log.info("Ablation C — WITHOUT verifier+reranker")
     from pipeline.retrieval import EvidenceRetriever
     retriever = EvidenceRetriever()
-    gen       = Generator(model_key="bart", use_finetuned=True, n_candidates=1)
+    gen       = Generator(model_key="bart", use_finetuned=USE_SELF_TRAINED_BART, n_candidates=1)
 
     def pipeline_no_verifier(article: str):
         ret  = retriever.get_evidence(article, method="hybrid")
