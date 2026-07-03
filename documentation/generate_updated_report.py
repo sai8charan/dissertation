@@ -1,7 +1,6 @@
 """
-Generate updated mid-semester report matching original PDF structure.
-All text is black, consistent 12pt body / 14pt section headings.
-No irregular page breaks. Minimal whitespace. 5 references only.
+Generate updated mid-semester report — color styled, consistent formatting.
+Blue headings, colored table headers, clean layout.
 """
 
 import sys
@@ -18,87 +17,94 @@ from docx.oxml import parse_xml
 OUT_DOCX = Path(__file__).parent / "2024AA05606_Updated_Report.docx"
 OUT_PDF = Path(__file__).parent / "2024AA05606_Updated_Report.pdf"
 
-FONT_NAME = "Times New Roman"
-BODY_SIZE = Pt(12)
-HEADING_SIZE = Pt(14)
-SUB_HEADING_SIZE = Pt(12)
-TABLE_SIZE = Pt(10)
-SMALL_SIZE = Pt(10)
+FONT = "Calibri"
+BODY_SZ = Pt(11)
+HEAD_SZ = Pt(14)
+SUBHEAD_SZ = Pt(12)
+TBL_SZ = Pt(10)
+
+# Color palette
+HEADING_COLOR = RGBColor(0x1F, 0x49, 0x7D)      # Dark blue
+SUBHEAD_COLOR = RGBColor(0x2E, 0x75, 0xB6)      # Medium blue
+BODY_COLOR = RGBColor(0x00, 0x00, 0x00)          # Black
+TBL_HEADER_BG = "1F497D"                          # Dark blue bg
+TBL_HEADER_FG = RGBColor(0xFF, 0xFF, 0xFF)       # White text
+TBL_ALT_BG = "D6E4F0"                            # Light blue alternating
+
+
+def set_cell_bg(cell, color):
+    shading = parse_xml(f'<w:shd {nsdecls("w")} w:fill="{color}" w:val="clear"/>')
+    cell._tc.get_or_add_tcPr().append(shading)
 
 
 def build_report():
     doc = Document()
 
-    # --- Global style setup ---
+    # Global style
     style = doc.styles["Normal"]
-    style.font.name = FONT_NAME
-    style.font.size = BODY_SIZE
-    style.font.color.rgb = RGBColor(0, 0, 0)
+    style.font.name = FONT
+    style.font.size = BODY_SZ
+    style.font.color.rgb = BODY_COLOR
     style.paragraph_format.space_after = Pt(6)
     style.paragraph_format.space_before = Pt(0)
     style.paragraph_format.line_spacing = 1.15
 
-    # Margins
     for sec in doc.sections:
         sec.top_margin = Cm(2.54)
         sec.bottom_margin = Cm(2.54)
         sec.left_margin = Cm(2.54)
         sec.right_margin = Cm(2.54)
 
-    # --- Helper closures ---
-    def center(text, size=BODY_SIZE, bold=False, after=Pt(4)):
+    # ─── Helpers ──────────────────────────────────────────────────────
+    def center(text, size=BODY_SZ, bold=False, color=BODY_COLOR, after=Pt(4)):
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.paragraph_format.space_after = after
         p.paragraph_format.space_before = Pt(0)
         r = p.add_run(text)
-        r.font.name = FONT_NAME
+        r.font.name = FONT
         r.font.size = size
-        r.font.color.rgb = RGBColor(0, 0, 0)
+        r.font.color.rgb = color
         r.bold = bold
-        return p
 
     def body(text, after=Pt(6), bold=False, italic=False):
         p = doc.add_paragraph()
         p.paragraph_format.space_after = after
         p.paragraph_format.space_before = Pt(0)
         r = p.add_run(text)
-        r.font.name = FONT_NAME
-        r.font.size = BODY_SIZE
-        r.font.color.rgb = RGBColor(0, 0, 0)
+        r.font.name = FONT
+        r.font.size = BODY_SZ
+        r.font.color.rgb = BODY_COLOR
         r.bold = bold
         r.italic = italic
-        return p
 
     def heading(text):
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(14)
         p.paragraph_format.space_after = Pt(6)
         r = p.add_run(text)
-        r.font.name = FONT_NAME
-        r.font.size = HEADING_SIZE
-        r.font.color.rgb = RGBColor(0, 0, 0)
+        r.font.name = FONT
+        r.font.size = HEAD_SZ
+        r.font.color.rgb = HEADING_COLOR
         r.bold = True
-        # Add bottom border
+        # Bottom border in blue
         pPr = p._p.get_or_add_pPr()
         pBdr = parse_xml(
             f'<w:pBdr {nsdecls("w")}>'
-            f'<w:bottom w:val="single" w:sz="4" w:space="1" w:color="000000"/>'
+            f'<w:bottom w:val="single" w:sz="8" w:space="1" w:color="1F497D"/>'
             f'</w:pBdr>'
         )
         pPr.append(pBdr)
-        return p
 
     def subheading(text):
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(10)
         p.paragraph_format.space_after = Pt(4)
         r = p.add_run(text)
-        r.font.name = FONT_NAME
-        r.font.size = SUB_HEADING_SIZE
-        r.font.color.rgb = RGBColor(0, 0, 0)
+        r.font.name = FONT
+        r.font.size = SUBHEAD_SZ
+        r.font.color.rgb = SUBHEAD_COLOR
         r.bold = True
-        return p
 
     def bullet(text):
         p = doc.add_paragraph(style="List Bullet")
@@ -106,34 +112,38 @@ def build_report():
         p.paragraph_format.space_after = Pt(2)
         p.paragraph_format.space_before = Pt(0)
         r = p.add_run(text)
-        r.font.name = FONT_NAME
-        r.font.size = BODY_SIZE
-        r.font.color.rgb = RGBColor(0, 0, 0)
-        return p
+        r.font.name = FONT
+        r.font.size = BODY_SZ
+        r.font.color.rgb = BODY_COLOR
 
-    def table(headers, rows):
+    def tbl(headers, rows):
         t = doc.add_table(rows=1 + len(rows), cols=len(headers))
         t.style = "Table Grid"
         t.alignment = WD_TABLE_ALIGNMENT.CENTER
+        # Header row — dark blue bg, white text
         for i, h in enumerate(headers):
             c = t.rows[0].cells[i]
             c.text = ""
+            set_cell_bg(c, TBL_HEADER_BG)
             p = c.paragraphs[0]
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             r = p.add_run(h)
-            r.font.name = FONT_NAME
-            r.font.size = TABLE_SIZE
-            r.font.color.rgb = RGBColor(0, 0, 0)
+            r.font.name = FONT
+            r.font.size = TBL_SZ
+            r.font.color.rgb = TBL_HEADER_FG
             r.bold = True
+        # Data rows — alternating light blue
         for ri, row in enumerate(rows):
             for ci, val in enumerate(row):
                 c = t.rows[ri + 1].cells[ci]
                 c.text = ""
+                if ri % 2 == 1:
+                    set_cell_bg(c, TBL_ALT_BG)
                 p = c.paragraphs[0]
                 r = p.add_run(str(val))
-                r.font.name = FONT_NAME
-                r.font.size = TABLE_SIZE
-                r.font.color.rgb = RGBColor(0, 0, 0)
+                r.font.name = FONT
+                r.font.size = TBL_SZ
+                r.font.color.rgb = BODY_COLOR
         return t
 
     # ════════════════════════════════════════════════════════════════════
@@ -143,8 +153,8 @@ def build_report():
         doc.add_paragraph().paragraph_format.space_after = Pt(0)
 
     center("A TWO-STAGE SUMMARIZATION PIPELINE FOR\nNEWS ARTICLES:\nEXTRACTION-GUIDED ABSTRACTIVE GENERATION",
-           size=Pt(16), bold=True, after=Pt(14))
-    center("AIMLCZG628T: DISSERTATION – MID-SEMESTER REPORT", size=BODY_SIZE, after=Pt(20))
+           size=Pt(16), bold=True, color=HEADING_COLOR, after=Pt(14))
+    center("AIMLCZG628T: DISSERTATION – MID-SEMESTER REPORT", size=BODY_SZ, after=Pt(20))
     center("by", after=Pt(4))
     center("PUTHINEEDI VENKATA SAI CHARAN", size=Pt(13), bold=True, after=Pt(2))
     center("2024AA05606", size=Pt(13), bold=True, after=Pt(20))
@@ -174,13 +184,12 @@ def build_report():
 
     body("The key novelty of this work is a Difficulty-Aware Safety Switch that replaces a fixed FCS threshold with a dynamic, per-article threshold computed from three signals: article length complexity, entity density, and retrieval uncertainty. This mechanism ensures harder articles require stronger factual confidence before accepting abstractive output, while easier articles pass at a lower threshold — improving factual safety without model retraining.")
 
-    body("At the mid-semester milestone, the dataset preparation, baseline implementations, the complete pipeline with difficulty-aware fallback, ablation studies, and a Streamlit demonstration application have been completed. Remaining work includes human evaluation and final dissertation write-up.")
+    body("At the mid-semester milestone, the dataset preparation, baseline implementations, the complete pipeline with difficulty-aware fallback, and a Streamlit demonstration application have been completed. Remaining work includes ablation studies, PEGASUS/mBART comparison, human evaluation, and final dissertation write-up.")
 
     body("Keywords: Automatic Text Summarisation, NLP, BART, Evidence Retrieval, Factual Consistency, NLI, BM25, Difficulty-Aware Threshold.", italic=True)
 
-    # Signatures
     body("")
-    sig = table(
+    tbl(
         ["Signature of the Student", "Signature of the Supervisor"],
         [
             ["Name: Puthineedi Venkata Sai Charan", "Name: Veeraswamy Ponnuru"],
@@ -196,7 +205,7 @@ def build_report():
     # ════════════════════════════════════════════════════════════════════
     heading("CONTENTS")
 
-    table(
+    tbl(
         ["Section", "Page"],
         [
             ["1. Introduction and Problem Context", "4"],
@@ -235,7 +244,7 @@ def build_report():
     bullet("Four baseline systems implemented and evaluated (Lead-3, TextRank, BART zero-shot, BART pretrained)")
     bullet("Complete pipeline: evidence retrieval, generation, NLI verification, difficulty-aware reranking")
     bullet("Difficulty-Aware Safety Switch designed, implemented, and validated")
-    bullet("Ablation studies, PEGASUS/mBART comparison, and Streamlit demo completed")
+    bullet("Streamlit demonstration application with difficulty signal visualisation developed")
 
     heading("2. OBJECTIVES AND RESEARCH QUESTIONS")
 
@@ -298,40 +307,44 @@ def build_report():
     body("The system follows a modular four-stage pipeline extending conventional extractive-abstractive summarisation with verification and selection layers.")
 
     subheading("4.1 High-Level Architecture")
-    bullet("Stage 1 – Evidence Retrieval: Hybrid BM25 + embedding scoring, top-K sentences within 1024-token budget.")
+    bullet("Stage 1 – Evidence Retrieval: Hybrid BM25 + embedding scoring, top-K within 1024-token budget.")
     bullet("Stage 2 – Abstractive Generation: Fine-tuned BART, N=5 candidates via nucleus sampling.")
     bullet("Stage 3 – NLI Verification: Sentence-level entailment scoring → per-candidate FCS.")
     bullet("Stage 4 – Difficulty-Aware Reranking: Weighted rank + dynamic threshold + extractive guard.")
 
-    # Architecture diagram as table
     body("")
+    # Architecture diagram
     arch = doc.add_table(rows=3, cols=11)
     arch.style = "Table Grid"
     arch.alignment = WD_TABLE_ALIGNMENT.CENTER
 
-    # Title row
+    # Title row merged
     c0 = arch.rows[0].cells[0]
     c0.merge(arch.rows[0].cells[10])
     c0.text = ""
+    set_cell_bg(c0, TBL_HEADER_BG)
     p = c0.paragraphs[0]
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     r = p.add_run("Two-Stage Grounded Summarisation Pipeline — Architecture")
-    r.font.size = TABLE_SIZE
-    r.font.color.rgb = RGBColor(0, 0, 0)
+    r.font.size = TBL_SZ
+    r.font.color.rgb = TBL_HEADER_FG
     r.bold = True
 
     # Stage boxes
     boxes = ["INPUT\nNews\nArticle", "→", "Stage 1\nEvidence\nRetrieval", "→",
              "Stage 2\nAbstractive\nGeneration", "→", "Stage 3\nNLI\nVerification", "→",
              "Stage 4\nDifficulty-Aware\nReranking", "→", "OUTPUT\nFactual\nSummary"]
-    for i, txt in enumerate(boxes):
+    stage_colors = ["F2F2F2", "FFFFFF", "D6E4F0", "FFFFFF", "D6E4F0", "FFFFFF",
+                    "D6E4F0", "FFFFFF", "D6E4F0", "FFFFFF", "E2EFDA"]
+    for i, (txt, bg) in enumerate(zip(boxes, stage_colors)):
         c = arch.rows[1].cells[i]
         c.text = ""
+        set_cell_bg(c, bg)
         p = c.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r = p.add_run(txt)
         r.font.size = Pt(8)
-        r.font.color.rgb = RGBColor(0, 0, 0)
+        r.font.color.rgb = BODY_COLOR
         r.bold = (i in [0, 10])
 
     # Sub-descriptions
@@ -340,11 +353,13 @@ def build_report():
     for i, txt in enumerate(subs):
         c = arch.rows[2].cells[i]
         c.text = ""
+        if txt:
+            set_cell_bg(c, "F2F2F2")
         p = c.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r = p.add_run(txt)
         r.font.size = Pt(7)
-        r.font.color.rgb = RGBColor(0, 0, 0)
+        r.font.color.rgb = RGBColor(0x55, 0x55, 0x55)
         r.italic = True
 
     body("Figure 1: High-level architecture of the proposed pipeline.", italic=True, after=Pt(8))
@@ -353,8 +368,8 @@ def build_report():
     bullet("BART (Lewis et al., ACL 2020): Primary abstractive generator, fine-tuned on CNN/DailyMail.")
     bullet("PEGASUS (Zhang et al., ICML 2020): Domain-pretrained comparison baseline.")
     bullet("SummaC (Laban et al., TACL 2022): NLI-based inconsistency detection, informs FCS design.")
-    bullet("Provenance (Sankararaman et al., EMNLP 2024): Light-weight RAG fact-checking, motivates verification stage.")
-    bullet("MiniCheck (Tang et al., EMNLP 2024): Efficient grounding verification — validates NLI approach at scale.")
+    bullet("Provenance (Sankararaman et al., EMNLP 2024): Light-weight RAG fact-checking.")
+    bullet("MiniCheck (Tang et al., EMNLP 2024): Efficient grounding verification at scale.")
 
     doc.add_page_break()
 
@@ -363,7 +378,7 @@ def build_report():
     # ════════════════════════════════════════════════════════════════════
     heading("5. TOOLS AND TECHNOLOGIES USED")
 
-    table(
+    tbl(
         ["Component", "Technology / Library"],
         [
             ["Dataset & Preprocessing", "HuggingFace Datasets, NLTK"],
@@ -384,7 +399,7 @@ def build_report():
     heading("6. METHODOLOGY AND PIPELINE IMPLEMENTATION")
 
     subheading("6.1 Evidence Retrieval")
-    body("Each sentence is scored using hybrid BM25 + sentence-embedding cosine similarity. Top-K sentences within 1024-token budget form both generation context and verification evidence pool.")
+    body("Each sentence scored using hybrid BM25 + sentence-embedding cosine similarity. Top-K sentences within 1024-token budget form generation context and verification evidence pool.")
 
     subheading("6.2 Abstractive Generation")
     body("BART-large fine-tuned for 3 epochs (lr=3e-5, batch 2, grad accum 8). At inference, N=5 diverse candidates generated via nucleus sampling (top_p=0.92).")
@@ -416,7 +431,7 @@ def build_report():
     heading("8. EXPERIMENTAL RESULTS")
 
     subheading("8.1 Baseline Comparison (n=15, difficulty-stratified)")
-    table(
+    tbl(
         ["System", "ROUGE-1", "ROUGE-2", "ROUGE-L", "BERTScore F1"],
         [
             ["Lead-3", "44.68", "23.47", "29.84", "87.84"],
@@ -427,7 +442,7 @@ def build_report():
     )
 
     subheading("8.2 Pipeline with Difficulty-Aware Safety Switch (n=15)")
-    table(
+    tbl(
         ["System", "R-1", "R-2", "R-L", "BERT", "FCS", "Fallback", "Thresh.", "Difficulty"],
         [
             ["Pipeline (dynamic)", "38.69", "17.57", "27.18", "87.40", "0.9998", "0.0%", "0.555", "0.777"],
@@ -435,7 +450,7 @@ def build_report():
     )
 
     subheading("8.3 Large-Scale Evaluation (n=300)")
-    table(
+    tbl(
         ["System", "R-1", "R-2", "R-L", "BERT", "FCS", "Halluc.", "Latency"],
         [
             ["Pipeline (hybrid+verify+rerank)", "30.72", "10.10", "20.55", "87.00", "0.9997", "0.0%", "34.5s"],
@@ -456,18 +471,18 @@ def build_report():
     # ════════════════════════════════════════════════════════════════════
     heading("9. CURRENT IMPLEMENTATION STATUS")
 
-    table(
+    tbl(
         ["Work Package", "Deliverable", "Status", "Evidence"],
         [
             ["Dataset preparation", "CNN/DM splits, stats", "COMPLETED", "Corpus stats"],
-            ["Baseline implementation", "Lead-3, TextRank, BART, PEGASUS", "COMPLETED", "Metric tables"],
+            ["Baseline implementation", "Lead-3, TextRank, BART", "COMPLETED", "Metric tables"],
             ["Evidence retrieval", "Hybrid BM25 + embedding", "COMPLETED", "Ablation results"],
             ["Abstractive generation", "BART Best-of-N sampling", "COMPLETED", "Outputs"],
             ["NLI verification & reranker", "FCS + fallback logic", "COMPLETED", "FCS analysis"],
             ["Difficulty-Aware Switch", "Dynamic threshold", "COMPLETED", "Threshold analysis"],
-            ["PEGASUS/mBART comparison", "Comparative evaluation", "COMPLETED", "Metric tables"],
-            ["Ablation studies", "Retrieval, N-cands, verifier", "COMPLETED", "Ablation tables"],
             ["Demo application", "Streamlit + difficulty viz", "COMPLETED", "Working demo"],
+            ["PEGASUS/mBART comparison", "Comparative evaluation", "IN PROGRESS", "Metric tables"],
+            ["Ablation studies", "Retrieval, N-cands, verifier", "PENDING", "Ablation tables"],
             ["Human evaluation", "50 samples, 3 raters", "PENDING", "Inter-rater stats"],
         ],
     )
@@ -479,7 +494,7 @@ def build_report():
     # ════════════════════════════════════════════════════════════════════
     heading("10. TECHNICAL SPECIFICATIONS")
 
-    table(
+    tbl(
         ["#", "Parameter", "Specification"],
         [
             ["1", "Primary dataset", "CNN/DailyMail (70/15/15 split)"],
@@ -519,7 +534,7 @@ def build_report():
     bullet("Mean latency 34.5s/article — acceptable for batch, needs optimisation for real-time.")
 
     subheading("12.2 Risks and Mitigations")
-    table(
+    tbl(
         ["Risk", "Mitigation"],
         [
             ["NLI reliability on long docs", "Evaluation restricted to CNN/DM (short docs)"],
@@ -531,14 +546,14 @@ def build_report():
 
     heading("13. FUTURE PLAN")
 
-    table(
+    tbl(
         ["Phase", "Dates", "Work", "Status"],
         [
             ["1. Setup", "25 Apr – 10 May", "Literature review, environment", "COMPLETED"],
             ["2. Baselines", "11 May – 31 May", "Pipeline design, baselines", "COMPLETED"],
             ["3. Pipeline", "01 Jun – 21 Jun", "Retrieval, generation, verification", "COMPLETED"],
-            ["4. Novelty", "22 Jun – 12 Jul", "Difficulty switch, ablations, demo", "COMPLETED"],
-            ["5. Final", "13 Jul – 02 Aug", "Human eval, dissertation, VIVA", "IN PROGRESS"],
+            ["4. Novelty & Demo", "22 Jun – 12 Jul", "Difficulty switch, demo app", "COMPLETED"],
+            ["5. Evaluation & Final", "13 Jul – 02 Aug", "Ablation, comparison, human eval, VIVA", "PENDING"],
         ],
     )
 
@@ -549,7 +564,7 @@ def build_report():
     # ════════════════════════════════════════════════════════════════════
     heading("14. ABBREVIATIONS")
 
-    table(
+    tbl(
         ["Abbreviation", "Full Form"],
         [
             ["NLP", "Natural Language Processing"],
@@ -577,7 +592,7 @@ def build_report():
         body(ref, after=Pt(4))
 
     # ════════════════════════════════════════════════════════════════════
-    # Page numbers in footer
+    # Page numbers
     # ════════════════════════════════════════════════════════════════════
     for sec in doc.sections:
         footer = sec.footer
@@ -595,7 +610,6 @@ def build_report():
         fld2 = parse_xml(f'<w:fldChar {nsdecls("w")} w:fldCharType="end"/>')
         run3._r.append(fld2)
 
-    # Save
     doc.save(str(OUT_DOCX))
     print(f"DOCX saved: {OUT_DOCX}")
 
