@@ -59,9 +59,9 @@ st.markdown("""
 
 # ── Model loading (cached so it only runs once) ───────────────────────────────
 @st.cache_resource(show_spinner="Loading models … (first run only)")
-def load_pipeline(safety_mode: str = "dynamic"):
+def load_pipeline():
     from pipeline.pipeline import SummarizationPipeline
-    return SummarizationPipeline(model_key="bart", safety_mode=safety_mode)
+    return SummarizationPipeline(model_key="bart", safety_mode="dynamic")
 
 @st.cache_resource(show_spinner=False)
 def load_lead3():
@@ -157,7 +157,7 @@ col1, col2 = st.columns([3, 1])
 with col1:
     sample_articles = {
         "Custom input": "",
-        "NASA Moon Mission": (
+        "[Science] NASA Moon Mission": (
             "NASA announced on Thursday that its Artemis programme will send "
             "astronauts back to the Moon in 2026. The mission will include "
             "the first woman and first person of colour to walk on the lunar surface. "
@@ -168,7 +168,7 @@ with col1:
             "NASA administrator Bill Nelson expressed confidence the programme "
             "remains on track and all major issues have been resolved."
         ),
-        "UK Economy Growth": (
+        "[Economy] UK Economy Growth": (
             "The UK economy grew by 0.6 percent in the first quarter of 2026, "
             "according to figures released by the Office for National Statistics. "
             "The growth was driven primarily by the services sector, which accounts "
@@ -178,6 +178,68 @@ with col1:
             "at its next meeting, citing stable inflation expectations. "
             "Analysts were cautiously optimistic but warned that global trade "
             "uncertainty could dampen growth in the second half of the year."
+        ),
+        "[Politics] Ayodhya Temple Case": (
+            "K.C. Venugopal questioned the credibility of the Special Investigation Team (SIT) "
+            "constituted by the Uttar Pradesh government, saying it appeared to be little more than an 'eyewash'. "
+            "Stepping up the Congress's attack over the alleged embezzlement of donations at the Ram temple in "
+            "Ayodhya, party general secretary K.C. Venugopal on Thursday (July 2, 2026) wrote to Prime Minister "
+            "Narendra Modi seeking an immediate Supreme Court-monitored probe into what he described as the "
+            "\"Chanda Chori mega scandal\". In his letter, Mr. Venugopal alleged that the fraud involved "
+            "\"hundreds of crores\" and amounted to a \"monumental betrayal\" of the Hindu faith, religion and way of life. "
+            "He also questioned the credibility of the Special Investigation Team (SIT) constituted by the "
+            "Uttar Pradesh government, saying it appeared to be little more than an \"eyewash\". He further alleged "
+            "that there was a growing apprehension that the investigation was being used to erase the remaining "
+            "evidence while shielding the \"big fish\" behind the alleged multi-crore embezzlement. \"Lord Ram is "
+            "revered as the embodiment of justice and righteousness. Allowing allegations of this nature to be buried, "
+            "rather than impartially investigated, would be a profound injustice to his devotees and to the values "
+            "he embodies,\" Mr. Venugopal said. He claimed that the offerings made by ordinary citizens have been "
+            "shamelessly looted. Mr. Venugopal said the \"systemic lapses at every level\" suggested that the alleged "
+            "loot had been enabled by institutional support. \"On one hand, the counting staff bypassed regular "
+            "surveillance to siphon off bundles of cash and valuable jewellery on a daily basis; on the other, 7 to 8 "
+            "months of crucial CCTV footage was deliberately destroyed to cover the tracks of this criminal enterprise,\" "
+            "he alleged. Mr. Venugopal also claimed that complaints of embezzlement and theft were either ignored or "
+            "actively suppressed. The Trust's former Chief Accounts Officer, who flagged these systematic irregularities, "
+            "was unceremoniously removed. So far only the 'small fish' have been arrested, while the institutional "
+            "support and chain of command remain untouched. \"A state-appointed SIT is neither equipped nor "
+            "institutionally independent to investigate individuals wielding immense political and institutional "
+            "influence,\" he said. The alleged embezzlement came to light after an SIT constituted by the Uttar "
+            "Pradesh government submitted its preliminary findings, following which an FIR was registered on June 25. "
+            "Eight accused were subsequently arrested, and the police said nearly Rs 80 lakh in cash, besides some "
+            "foreign currency, had been recovered so far from six of them."
+        ),
+        "[Business] Tech Merger Antitrust Dispute": (
+            "The Federal Trade Commission (FTC) on Monday filed a lawsuit in federal court to block the proposed "
+            "$8.4 billion acquisition of software company CloudSphere by tech giant Apex Corp. The regulator argued "
+            "that the deal, first announced on January 14, 2025, would eliminate critical competition in the cloud "
+            "database sector. Under the terms of the agreement, Apex Corp had agreed to pay $95 per share in cash, "
+            "a 32% premium over CloudSphere's trading price at the time. However, FTC Chair Lina Khan expressed concerns "
+            "that Apex Corp would integrate CloudSphere's services to restrict access to smaller competitors like "
+            "DataVentures and NexaCloud. Apex Corp's CEO, Julian Vance, pushed back against the allegations in a press "
+            "briefing, stating that the merger would actually accelerate innovation and reduce deployment costs for "
+            "end-users by up to 25%. European Union regulators at the European Commission are also reviewing the "
+            "transaction, with a provisional deadline set for September 18, 2026. The Department of Justice (DOJ) "
+            "had previously cleared a related $1.2 billion acquisition of SecurityGate by Apex Corp in late 2024, "
+            "but analysts suggest the current political climate poses a much steeper challenge for this transaction. "
+            "CloudSphere's stock fell by 14.3% to $72.10 following the FTC's announcement, while Apex Corp saw a "
+            "minor 1.2% dip."
+        ),
+        "[Health] Biotech Clinical Trial Results": (
+            "Biopharmaceutical firm Theragenics on Wednesday released Phase III clinical trial results for its "
+            "new experimental oncology drug, OncoShield, designed to treat advanced non-small cell lung cancer (NSCLC). "
+            "The randomized double-blind study, which enrolled 1,420 patients across 82 clinical sites globally, "
+            "compared OncoShield against the current standard of care, Paclitaxel. According to the company's official "
+            "filing, patients receiving OncoShield demonstrated a median progression-free survival (PFS) of 14.8 months, "
+            "compared to 9.2 months for the control group receiving Paclitaxel. This represented a statistically significant "
+            "38% reduction in the risk of disease progression or death (hazard ratio of 0.62). However, safety data "
+            "revealed that 18.4% of patients in the OncoShield arm experienced Grade 3 or higher adverse events, "
+            "primarily neutropenia and elevated liver enzymes, compared to 12.1% in the Paclitaxel arm. Three patient "
+            "deaths in the experimental group were deemed possibly related to the treatment by independent monitors. "
+            "Despite the safety signals, Theragenics Chief Medical Officer, Dr. Sarah Jenkins, announced plans to submit "
+            "a New Drug Application (NDA) to the Food and Drug Administration (FDA) by December 2025, with a subsequent "
+            "filing to the European Medicines Agency (EMA) in early 2026. Market shares in Theragenics surged 28.5% in "
+            "early trading following the announcement, while its main competitor, CellVax, which is developing a rival "
+            "therapy called LungCure, dropped by 8.2%."
         ),
     }
     selected = st.selectbox("Choose a sample article or enter your own:", list(sample_articles.keys()))
@@ -201,7 +263,8 @@ if run_btn:
         st.stop()
 
     safety_mode = "dynamic" if dynamic_switch else "fixed"
-    pipeline = load_pipeline(safety_mode=safety_mode)
+    pipeline = load_pipeline()
+    pipeline.safety_mode = safety_mode  # apply sidebar toggle without reloading models
 
     with st.spinner("Running pipeline …"):
         t0     = time.time()
