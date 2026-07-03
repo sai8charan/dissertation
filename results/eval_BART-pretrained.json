@@ -1,13 +1,15 @@
 {
   "system": "BART-pretrained",
-  "n_samples": 300,
-  "rouge1": 34.73,
-  "rouge2": 14.59,
-  "rougeL": 25.23,
-  "bertscore_f1": 87.75,
+  "n_samples": 15,
+  "rouge1": 47.46,
+  "rouge2": 26.62,
+  "rougeL": 37.14,
+  "bertscore_f1": 88.99,
   "fallback_rate": 0.0,
   "mean_latency_s": 0.0,
-  "nli_fcs": 0.9997,
-  "nli_fcs_pct": 99.97,
-  "hallucination_rate": 0.0
+  "mean_threshold": null,
+  "mean_difficulty": null,
+  "dynamic_mode_share": 0.0,
+  "nli_fcs": null,
+  "hallucination_rate": null
 }

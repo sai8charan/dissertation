@@ -1,0 +1,16 @@
+{
+  "system": "retrieval-hybrid",
+  "n_samples": 15,
+  "rouge1": 45.27,
+  "rouge2": 24.18,
+  "rougeL": 32.14,
+  "bertscore_f1": 88.2,
+  "fallback_rate": 0.0,
+  "mean_latency_s": 46.237,
+  "mean_threshold": 0.5554,
+  "mean_difficulty": 0.7768,
+  "dynamic_mode_share": 100.0,
+  "nli_fcs": 0.9998,
+  "nli_fcs_pct": 99.98,
+  "hallucination_rate": 0.0
+}

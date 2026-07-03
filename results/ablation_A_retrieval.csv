@@ -1,0 +1,5 @@
+system,n_samples,rouge1,rouge2,rougeL,bertscore_f1,fallback_rate,mean_latency_s,mean_threshold,mean_difficulty,dynamic_mode_share,nli_fcs,nli_fcs_pct,hallucination_rate
+retrieval-textrank,15,40.33,19.33,27.75,87.86,0.0,61.973,0.557,0.7849,100.0,0.9998,99.98,0.0
+retrieval-bm25,15,33.83,12.78,22.48,86.41,0.0,62.481,0.5523,0.7617,100.0,0.9998,99.98,0.0
+retrieval-embedding,15,41.24,19.08,28.16,87.86,0.0,47.378,0.5549,0.7746,100.0,0.9998,99.98,0.0
+retrieval-hybrid,15,45.27,24.18,32.14,88.2,0.0,46.237,0.5554,0.7768,100.0,0.9998,99.98,0.0

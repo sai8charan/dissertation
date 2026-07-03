@@ -1,15 +1,16 @@
 {
   "system": "Lead-3",
-  "n_samples": 200,
-  "rouge1": 30.45,
-  "rouge2": 12.31,
-  "rougeL": 21.06,
-  "bertscore_f1": 86.58,
+  "n_samples": 15,
+  "rouge1": 44.68,
+  "rouge2": 23.47,
+  "rougeL": 29.84,
+  "bertscore_f1": 87.84,
   "fallback_rate": 0.0,
   "mean_latency_s": 0.0,
   "mean_threshold": null,
   "mean_difficulty": null,
   "dynamic_mode_share": 0.0,
-  "nli_fcs": null,
-  "hallucination_rate": null
+  "nli_fcs": 0.9998,
+  "nli_fcs_pct": 99.98,
+  "hallucination_rate": 0.0
 }

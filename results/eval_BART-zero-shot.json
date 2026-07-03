@@ -1,13 +1,16 @@
 {
   "system": "BART-zero-shot",
-  "n_samples": 300,
-  "rouge1": 27.22,
-  "rouge2": 10.71,
-  "rougeL": 18.49,
-  "bertscore_f1": 86.07,
+  "n_samples": 15,
+  "rouge1": 40.19,
+  "rouge2": 21.21,
+  "rougeL": 26.48,
+  "bertscore_f1": 87.07,
   "fallback_rate": 0.0,
   "mean_latency_s": 0.0,
-  "nli_fcs": 0.9997,
-  "nli_fcs_pct": 99.97,
+  "mean_threshold": null,
+  "mean_difficulty": null,
+  "dynamic_mode_share": 0.0,
+  "nli_fcs": 0.9998,
+  "nli_fcs_pct": 99.98,
   "hallucination_rate": 0.0
 }

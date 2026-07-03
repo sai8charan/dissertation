@@ -1,0 +1,16 @@
+{
+  "system": "best-of-2",
+  "n_samples": 15,
+  "rouge1": 39.61,
+  "rouge2": 19.16,
+  "rougeL": 27.37,
+  "bertscore_f1": 87.49,
+  "fallback_rate": 0.0,
+  "mean_latency_s": 20.333,
+  "mean_threshold": 0.5554,
+  "mean_difficulty": 0.7768,
+  "dynamic_mode_share": 100.0,
+  "nli_fcs": 0.9998,
+  "nli_fcs_pct": 99.98,
+  "hallucination_rate": 0.0
+}
