@@ -92,16 +92,19 @@ class TextRankSummarizer:
         if not sentences:
             return {"selected_context": "", "evidence_pool": []}
 
-        ranked    = self.rank_sentences(sentences)
-        scores    = nx.pagerank(
-            self._build_graph(
-                self.model.encode(sentences, show_progress_bar=False)
-            ),
-            alpha=self.damping,
-        )
+        if len(sentences) == 1:
+            return {
+                "selected_context": sentences[0],
+                "evidence_pool": [{"sentence": sentences[0], "score": 1.0, "index": 0}],
+            }
+
+        embeddings = self.model.encode(sentences, show_progress_bar=False)
+        graph      = self._build_graph(embeddings)
+        scores     = nx.pagerank(graph, alpha=self.damping)
+        ranked     = sorted(scores, key=scores.get, reverse=True)
 
         evidence_pool = [
-            {"sentence": s, "score": scores[i], "index": i}
+            {"sentence": s, "score": float(scores[i]), "index": i}
             for i, s in enumerate(sentences)
         ]
         evidence_pool.sort(key=lambda x: x["score"], reverse=True)

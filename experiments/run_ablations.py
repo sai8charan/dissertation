@@ -22,6 +22,7 @@ Run:
 import argparse
 import logging
 import sys
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -40,12 +41,10 @@ def ablation_retrieval_method(max_samples: int = 100):
 
     methods = ["textrank", "bm25", "embedding", "hybrid"]
     results = []
+    pipe = SummarizationPipeline(use_finetuned=USE_SELF_TRAINED_BART)
     for method in methods:
         log.info("Ablation A — retrieval method: %s", method)
-        pipe = SummarizationPipeline(
-            use_finetuned=USE_SELF_TRAINED_BART,
-            retrieval_method=method,
-        )
+        pipe.retrieval_method = method
         m = evaluate_system(
             summarise_fn=pipe,
             system_name=f"retrieval-{method}",
@@ -70,12 +69,10 @@ def ablation_n_candidates(max_samples: int = 100):
 
     n_values = [1, 2, 3, 5, 8]
     results  = []
+    pipe = SummarizationPipeline(use_finetuned=USE_SELF_TRAINED_BART)
     for n in n_values:
         log.info("Ablation B — N candidates: %d", n)
-        pipe = SummarizationPipeline(
-            use_finetuned=USE_SELF_TRAINED_BART,
-            n_candidates=n,
-        )
+        pipe.generator.n_candidates = n
         m = evaluate_system(
             summarise_fn=pipe,
             system_name=f"best-of-{n}",
@@ -120,13 +117,15 @@ def ablation_verifier_onoff(max_samples: int = 100):
     gen       = Generator(model_key="bart", use_finetuned=USE_SELF_TRAINED_BART, n_candidates=1)
 
     def pipeline_no_verifier(article: str):
+        t0   = time.time()
         ret  = retriever.get_evidence(article, method="hybrid")
         ctx  = ret["selected_context"]
         cand = gen.generate_candidates(ctx)
         return {
-            "summary":    cand[0] if cand else ctx,
-            "fallback":   False,
-            "latency_s":  0.0,
+            "summary":       cand[0] if cand else ctx,
+            "fallback":      False,
+            "latency_s":     round(time.time() - t0, 2),
+            "evidence_pool": ret["evidence_pool"],
         }
 
     m_off = evaluate_system(

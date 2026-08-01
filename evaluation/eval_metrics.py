@@ -144,11 +144,27 @@ def compute_bertscore(
     return round(float(F1.mean()) * 100, 2)
 
 
-# ── NLI-FCS (source-grounded factuality) ─────────────────────────────────────
+_DEFAULT_VERIFIER: Optional[EvidenceVerifier] = None
+_NLTK_CHECKED: bool = False
+
+def _get_default_verifier() -> EvidenceVerifier:
+    global _DEFAULT_VERIFIER
+    if _DEFAULT_VERIFIER is None:
+        _DEFAULT_VERIFIER = EvidenceVerifier()
+    return _DEFAULT_VERIFIER
+
+def _ensure_nltk_punkt() -> None:
+    global _NLTK_CHECKED
+    if not _NLTK_CHECKED:
+        import nltk
+        nltk.download("punkt_tab", quiet=True)   # NLTK 3.8+
+        nltk.download("punkt", quiet=True)       # fallback for older NLTK
+        _NLTK_CHECKED = True
 
 def compute_nli_fcs(
     predictions: List[str],
     articles: List[str],
+    evidence_pools: Optional[List[Optional[List[Dict]]]] = None,
     verifier: Optional[EvidenceVerifier] = None,
     sample_n: int = 200,           # expensive; sample for large test sets
 ) -> Dict[str, float]:
@@ -156,13 +172,16 @@ def compute_nli_fcs(
     Computes mean FCS and hallucination rate over a sample of the test set.
 
     hallucination_rate = % summary sentences with entail_prob < FCS_THRESHOLD
+
+    If evidence_pools is provided, each entry is the evidence pool that the
+    pipeline actually retrieved for that document. When an entry is None (e.g.
+    for baselines that don't perform retrieval), we fall back to building a
+    pool from all sentences in the source article.
     """
     if verifier is None:
-        verifier = EvidenceVerifier()
+        verifier = _get_default_verifier()
 
-    import nltk
-    nltk.download("punkt_tab", quiet=True)   # NLTK 3.8+
-    nltk.download("punkt", quiet=True)       # fallback for older NLTK
+    _ensure_nltk_punkt()
     from nltk.tokenize import sent_tokenize
 
     rng = np.random.default_rng(42)
@@ -171,10 +190,14 @@ def compute_nli_fcs(
     halluc_counts, total_sents = 0, 0
 
     for i in tqdm(indices, desc="NLI-FCS"):
-        # Build a minimal evidence pool from the article sentences
-        art_sents = sent_tokenize(articles[i])
-        pool = [{"index": j, "sentence": s, "hybrid_score": 1.0}
-                for j, s in enumerate(art_sents)]
+        # Use the pipeline's actual retrieved evidence pool when available;
+        # fall back to full-article sentences for baselines without retrieval.
+        if evidence_pools is not None and evidence_pools[i] is not None:
+            pool = evidence_pools[i]
+        else:
+            art_sents = sent_tokenize(articles[i])
+            pool = [{"index": j, "sentence": s, "hybrid_score": 1.0}
+                    for j, s in enumerate(art_sents)]
         result = verifier.verify_candidate(predictions[i], pool)
         fcs_scores.append(result["fcs"])
         for t in result["evidence_trace"]:
@@ -221,6 +244,7 @@ def evaluate_system(
 
     predictions, references, articles = [], [], []
     fallback_flags, latencies = [], []
+    evidence_pools_collected = []
     thresholds_used, difficulty_scores, safety_modes = [], [], []
 
     for example in tqdm(test, desc=f"Evaluating {system_name}"):
@@ -232,6 +256,7 @@ def evaluate_system(
         articles.append(article)
         fallback_flags.append(result.get("fallback", False))
         latencies.append(result.get("latency_s", 0.0))
+        evidence_pools_collected.append(result.get("evidence_pool", None))
         thresholds_used.append(result.get("threshold_used", None))
         difficulty_scores.append(result.get("difficulty_score", None))
         safety_modes.append(result.get("safety_mode", "fixed"))
@@ -266,7 +291,7 @@ def evaluate_system(
 
     if compute_fcs:
         log.info("Computing NLI-FCS (sampled) …")
-        fcs_metrics = compute_nli_fcs(predictions, articles)
+        fcs_metrics = compute_nli_fcs(predictions, articles, evidence_pools=evidence_pools_collected)
         metrics.update(fcs_metrics)
     else:
         metrics["nli_fcs"]             = None

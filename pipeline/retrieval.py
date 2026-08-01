@@ -70,6 +70,7 @@ class EvidenceRetriever:
         self.token_budget = token_budget
         self._embed_model = None
         self._embed_model_name = embed_model_name
+        self._textrank = None
 
     @property
     def embed_model(self) -> SentenceTransformer:
@@ -155,9 +156,10 @@ class EvidenceRetriever:
             }
         """
         if method == "textrank":
-            from baselines.textrank import TextRankSummarizer
-            tr = TextRankSummarizer(top_k=self.top_k)
-            return tr.get_context(article)
+            if self._textrank is None:
+                from baselines.textrank import TextRankSummarizer
+                self._textrank = TextRankSummarizer(top_k=self.top_k)
+            return self._textrank.get_context(article)
 
         sentences = sent_tokenize(article)
         if not sentences:

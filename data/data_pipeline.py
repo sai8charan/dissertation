@@ -92,12 +92,13 @@ def _split_train_val_test(ds):
     return DatasetDict({"train": train, "validation": val, "test": test})
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
+_CACHED_SPLITS: DatasetDict = None
+
 
 def get_datasets(force_reprocess: bool = False) -> DatasetDict:
     """
     Load, clean, and split CNN/DailyMail.
-    Results are cached in DATA_DIR to avoid repeated downloads.
+    Results are cached in DATA_DIR and in-memory to avoid repeated downloads and disk I/O.
 
     Returns:
         DatasetDict with keys 'train', 'validation', 'test'.
@@ -105,13 +106,18 @@ def get_datasets(force_reprocess: bool = False) -> DatasetDict:
           article, highlights, article_sents, num_sents,
           article_len, summary_len.
     """
+    global _CACHED_SPLITS
+    if _CACHED_SPLITS is not None and not force_reprocess:
+        return _CACHED_SPLITS
+
     cache_path = DATA_DIR / "cnn_dm_processed"
 
     if cache_path.exists() and not force_reprocess:
         log.info("Loading processed dataset from local cache: %s", cache_path)
         from datasets import load_from_disk
         try:
-            return load_from_disk(str(cache_path))
+            _CACHED_SPLITS = load_from_disk(str(cache_path))
+            return _CACHED_SPLITS
         except Exception as exc:
             log.warning("Cached processed dataset is unreadable (%s). Reprocessing.", exc)
 
@@ -135,6 +141,7 @@ def get_datasets(force_reprocess: bool = False) -> DatasetDict:
 
     log.info("Saving processed dataset to %s", cache_path)
     splits.save_to_disk(str(cache_path))
+    _CACHED_SPLITS = splits
     return splits
 
 
