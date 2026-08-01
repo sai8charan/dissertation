@@ -232,14 +232,23 @@ def compute_agreement(completed_csv: Path) -> dict:
 
     # ── Cohen's Kappa per dimension ───────────────────────────────────────────
     for dim in DIMENSIONS:
-        r1 = df[f"rater_1_{dim}"].dropna().astype(int).tolist()
-        r2 = df[f"rater_2_{dim}"].dropna().astype(int).tolist()
-        r3 = df[f"rater_3_{dim}"].dropna().astype(int).tolist()
-        min_len = min(len(r1), len(r2), len(r3))
+        pair_12 = df[[f"rater_1_{dim}", f"rater_2_{dim}"]].dropna()
+        pair_13 = df[[f"rater_1_{dim}", f"rater_3_{dim}"]].dropna()
+        pair_23 = df[[f"rater_2_{dim}", f"rater_3_{dim}"]].dropna()
+
         results["kappa"][dim] = {
-            "r1_r2": _cohens_kappa(r1[:min_len], r2[:min_len]),
-            "r1_r3": _cohens_kappa(r1[:min_len], r3[:min_len]),
-            "r2_r3": _cohens_kappa(r2[:min_len], r3[:min_len]),
+            "r1_r2": _cohens_kappa(
+                pair_12[f"rater_1_{dim}"].astype(int).tolist(),
+                pair_12[f"rater_2_{dim}"].astype(int).tolist(),
+            ),
+            "r1_r3": _cohens_kappa(
+                pair_13[f"rater_1_{dim}"].astype(int).tolist(),
+                pair_13[f"rater_3_{dim}"].astype(int).tolist(),
+            ),
+            "r2_r3": _cohens_kappa(
+                pair_23[f"rater_2_{dim}"].astype(int).tolist(),
+                pair_23[f"rater_3_{dim}"].astype(int).tolist(),
+            ),
         }
         kappas = list(results["kappa"][dim].values())
         results["kappa"][dim]["mean"] = round(

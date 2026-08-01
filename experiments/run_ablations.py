@@ -100,9 +100,9 @@ def ablation_verifier_onoff(max_samples: int = 100):
 
     # WITH verifier + reranker (full pipeline)
     log.info("Ablation C — WITH verifier+reranker")
-    pipe_on = SummarizationPipeline(use_finetuned=USE_SELF_TRAINED_BART)
+    pipe = SummarizationPipeline(use_finetuned=USE_SELF_TRAINED_BART)
     m_on = evaluate_system(
-        summarise_fn=pipe_on,
+        summarise_fn=pipe,
         system_name="pipeline-verifier-ON",
         max_samples=max_samples,
         compute_fcs=True,
@@ -112,15 +112,22 @@ def ablation_verifier_onoff(max_samples: int = 100):
 
     # WITHOUT verifier: just take first candidate (greedy BART with retrieval)
     log.info("Ablation C — WITHOUT verifier+reranker")
-    from pipeline.retrieval import EvidenceRetriever
-    retriever = EvidenceRetriever()
-    gen       = Generator(model_key="bart", use_finetuned=USE_SELF_TRAINED_BART, n_candidates=1)
 
     def pipeline_no_verifier(article: str):
         t0   = time.time()
-        ret  = retriever.get_evidence(article, method="hybrid")
+        ret  = pipe.retriever.get_evidence(article, method="hybrid")
         ctx  = ret["selected_context"]
-        cand = gen.generate_candidates(ctx)
+        if not ctx.strip():
+            return {
+                "summary":       "",
+                "fallback":      True,
+                "latency_s":     round(time.time() - t0, 2),
+                "evidence_pool": [],
+            }
+        orig_n = pipe.generator.n_candidates
+        pipe.generator.n_candidates = 1
+        cand = pipe.generator.generate_candidates(ctx)
+        pipe.generator.n_candidates = orig_n
         return {
             "summary":       cand[0] if cand else ctx,
             "fallback":      False,
